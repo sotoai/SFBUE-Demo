@@ -52,6 +52,11 @@ export async function researchLeads(passage, fallback) {
   return language('leads', { passage }, fallback)
 }
 
+/* A first pass at one section, drafted before the data is consulted. */
+export async function draftSection(heading, question, fallback) {
+  return language('draft', { passage: heading, question }, fallback)
+}
+
 /* ---------- images ---------- */
 
 async function pollTask(taskId, onTick) {

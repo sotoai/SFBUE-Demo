@@ -286,6 +286,31 @@ function beginWork(mode) {
   renderRecord()
   $('sideSub').textContent = 'Fills in as you work. Nothing else is collected.'
   renderCanvas()
+  if (mode === 'foundations') draftFoundations()
+}
+
+/* Foundations, drafted live, one section at a time, so the person watches
+   the first pass being written. The draft is a pre-data pass on purpose:
+   testing it against the pack is the work. Any section that cannot be
+   drafted live falls back to prepared text without comment. */
+async function draftFoundations() {
+  const questions = {
+    audience: "Who is Kado's customer?",
+    position: 'What should the brand stand for?',
+    channel: "Where do the next two corners go? Start from the founder's January conviction about the road.",
+  }
+  for (const b of DRAFT) {
+    if (!questions[b.id]) continue
+    let p = document.querySelector(`p.body[data-block="${b.id}"]`)
+    if (!p) return
+    p.innerHTML = '<span class="think"><i></i><i></i><i></i></span>'
+    const text = await API.draftSection(b.heading, questions[b.id], b.body)
+    p = document.querySelector(`p.body[data-block="${b.id}"]`)
+    if (!p) return
+    p.textContent = text
+  }
+  const meta = document.querySelector('#doccol .doc .docmeta')
+  if (meta && API.state.language) meta.textContent = 'Foundations drafted just now, before the data. Edit anything, and keep only what holds up against the pack.'
 }
 
 /* The canvas: the primary surface, labeled as what it is. */
@@ -304,12 +329,12 @@ function renderCanvas() {
   const doc = el('div', 'doc')
   const foundations = S.started === 'foundations'
   doc.innerHTML = `<div class="docmeta">${foundations
-    ? 'Foundations drafted for you. Edit anything, and keep only what you would defend.'
+    ? 'Foundations drafted for you, before the data. Edit anything, and keep only what holds up against the pack.'
     : 'Your page. The three decisions from the brief are scaffolded below.'}</div>
     <div class="howto">Select any passage to update it, ask about it, tag it for research, or picture it. Your record fills in on the right as you work. The assignment stays one click away, top right.</div>`
 
   for (const b of DRAFT) {
-    if (!foundations && b.id === 'first-year') continue
+    if (b.id === 'first-year') continue
     const block = el('div', 'block')
     block.dataset.block = b.id
     const ph = {
@@ -319,7 +344,7 @@ function renderCanvas() {
     }[b.id] || 'Write here.'
     block.innerHTML = `<button class="gutter-add" title="Add below">+</button>
       <span class="ovl"><span class="tag">${b.tag ? esc(b.tag) + ' · ' : ''}</span>${b.heading}</span>
-      <p class="body" contenteditable="true" spellcheck="false" data-block="${b.id}" data-ph="${esc(ph)}">${foundations ? esc(b.body) : ''}</p>`
+      <p class="body" contenteditable="true" spellcheck="false" data-block="${b.id}" data-ph="${esc(ph)}"></p>`
     doc.appendChild(block)
   }
   c.appendChild(doc)
