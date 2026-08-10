@@ -8,6 +8,7 @@
 import { DOMAINS, WORLDS, PRODUCT, DRAFT, EVIDENCE_PACK, IMAGE_MOMENTS, BLOCK_TYPES, IMAGE_ACTIONS } from './js/scenario.js'
 import { createRecord, bandFor, domainCounts, STRUCTURAL, observe, capture, dispute, relativeTime, GUARDRAILS } from './js/engine.js'
 import { deriveInsights } from './js/insights.js'
+import { radarSVG, timelineSVG, compositionHTML, RADAR_CAPTION } from './js/charts.js'
 import * as API from './js/api.js'
 
 const $ = id => document.getElementById(id)
@@ -114,6 +115,18 @@ function observationCard(o, { disputable }) {
   return n
 }
 
+/* Section states for the composition bar, from provenance and evidence. */
+function artifactSections() {
+  return [...PROV.entries()].map(([id, p]) => {
+    const worked = p.touched.has('revised') || p.touched.has('updated')
+    const engaged = p.touched.size > 0 || evidenceOpened.has(id)
+    const state = p.origin === 'blank'
+      ? (worked ? 'reworked' : engaged ? 'checked' : 'unwritten')
+      : (worked ? 'reworked' : engaged ? 'checked' : 'untested')
+    return { heading: p.heading, state, origin: p.origin }
+  })
+}
+
 /* Everything the insight rules read, assembled in one place. */
 function buildInsightCtx() {
   const counts = domainCounts(S.record)
@@ -168,6 +181,10 @@ function renderSidebar() {
   const counts = domainCounts(S.record)
   body.innerHTML = ''
 
+  const radar = el('div', 'radarwrap')
+  radar.innerHTML = radarSVG(counts, { size: 190 }) + `<div class="chartcap">${RADAR_CAPTION}</div>`
+  body.appendChild(radar)
+
   const insWrap = el('div', 'insights')
   insightCards(insWrap, deriveInsights(buildInsightCtx()), { seat: 'learner' })
   body.appendChild(insWrap)
@@ -205,6 +222,24 @@ function renderTeacher() {
   const counts = domainCounts(S.record)
   t.innerHTML = ''
   t.appendChild(el('div', 'teach-line', esc(recordSummary(counts))))
+
+  const radar = el('div', 'card teachchart radarwrap')
+  radar.innerHTML = radarSVG(counts, { size: 300, ringLabels: true }) + `<div class="chartcap">${RADAR_CAPTION}</div>`
+  t.appendChild(radar)
+
+  if (PROV.size) {
+    const comp = el('div', 'card teachchart')
+    comp.innerHTML = `<span class="ovl">The artifact, section by section</span>` + compositionHTML(artifactSections())
+    t.appendChild(comp)
+  }
+
+  if (S.record.observations.length || S.record.captured.length) {
+    const tl = el('div', 'card teachchart')
+    tl.innerHTML = `<span class="ovl">The session, as it happened</span>
+      <div class="timeline">${timelineSVG(S.record)}</div>
+      <div class="chartcap" style="text-align:left">Real elapsed time. Hollow marks are disputed and kept. Faint ticks are captured acts, seen but not read as capability.</div>`
+    t.appendChild(tl)
+  }
 
   const insWrap = el('div', 'insights')
   insightCards(insWrap, deriveInsights(buildInsightCtx()), { seat: 'teacher' })

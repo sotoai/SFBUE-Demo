@@ -361,6 +361,18 @@ p.body:empty::before{content:attr(data-ph); color:var(--faint); font-style:itali
 .iev .n{display:block; font-size:10.5px; color:var(--faint); margin-top:2px}
 .iguide{margin-top:12px; padding-top:10px; border-top:1px solid var(--hair); font-size:12.5px; color:var(--ink); line-height:1.6}
 .iguide .ovl{margin-bottom:4px}
+
+/* charts: the record drawn, in the product's own palette */
+.radarwrap{display:flex; flex-direction:column; align-items:center; padding:8px 0 2px}
+.chartcap{font-size:10px; color:var(--faint); line-height:1.5; text-align:center; margin-top:4px; max-width:280px}
+.teachchart{padding:18px 22px 16px; margin-top:14px}
+.teachchart .ovl{margin-bottom:10px}
+.timeline{margin-top:4px}
+.compbar{display:flex; gap:3px; margin-top:8px}
+.compbar .seg{flex:1; min-width:0}
+.compbar .fill{height:10px; border-radius:2px; border:1px solid rgba(26,25,21,.06)}
+.compbar .seghead{font-size:10.5px; font-weight:500; color:var(--ink); margin-top:7px; line-height:1.35}
+.compbar .segstate{font-size:10px; color:var(--faint); margin-top:1px}
 .disputerow{margin-top:7px}
 .disputerow input{width:100%; border:none; border-bottom:1px solid var(--hair); background:transparent;
   font-family:var(--sans); font-size:12.5px; padding:5px 2px; outline:none; color:var(--ink)}
