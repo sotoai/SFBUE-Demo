@@ -105,14 +105,111 @@ export const DRAFT = [
   },
 ]
 
-/* What the evidence pack returns when someone actually looks. */
-/* Each source names the sections it bears on, so the graph can draw the link
-   between a document that was read and a passage it speaks to. */
+/* The evidence pack: four real documents, not summaries of documents.
+
+   A claim can only be checked against a source that is substantial enough to
+   check against, so each one carries its own numbers, and every number in it
+   adds up. `body` is the one line preview; `doc` is the document itself.
+   `bearsOn` names the sections it speaks to, which is what lets the graph
+   draw the link between a document read and a passage it bears on.
+
+   The founder's note deliberately contains a legitimate objection to the
+   session log rather than a straw position. The assignment is only worth
+   setting if the wrong answer is genuinely tempting. */
 export const EVIDENCE_PACK = [
-  { id: 'log', label: 'Pilot session log, 1,200 sessions', bearsOn: ['audience', 'channel'], body: '996 sessions were drivers who live within 3 miles of the corner. 36 began more than 40 miles from home, 3 percent of the pilot. Of the 200 regulars, 150 cannot plug in where they park at night.' },
-  { id: 'dwell', label: 'Charge and stay times, six months', bearsOn: ['position'], body: 'A charge to 80 percent takes 25 minutes. The median stay is 31 minutes. People order in the first two minutes and leave when they are finished, not when the car is.' },
-  { id: 'survey', label: 'Route 92 interchange survey', bearsOn: ['channel'], body: 'The interchange parcel sees roughly forty times the passing traffic of Alder Street, at 3.1 times the rent. The dwell note from the fast chargers already on that corridor: drivers wait in their cars with the doors closed.' },
-  { id: 'note', label: 'Elena Voss, founder, January note', bearsOn: ['position', 'channel'], body: 'One page on the night she was stranded at 4 percent outside Gilroy, and why Kado exists so nobody has that night again. Her line about the alternative: the neighborhood is where chargers go to be ignored.' },
+  {
+    id: 'log',
+    label: 'Pilot session log, 1,200 sessions',
+    kind: 'Operating data',
+    dateline: 'Alder Street corner · six months to 31 December',
+    bearsOn: ['audience', 'channel'],
+    body: '996 sessions were drivers who live within 3 miles of the corner. 36 began more than 40 miles from home, 3 percent of the pilot. Of the 200 regulars, 150 cannot plug in where they park at night.',
+    doc: [
+      { p: 'Every charging session at the Alder Street corner between 1 July and 31 December. Distance is measured from the billing address on the account used to pay.' },
+      { h: 'Sessions by distance from home' },
+      { table: { cols: ['Distance from home', 'Sessions', 'Share'], rows: [
+        ['Within 3 miles', '996', '83%'],
+        ['3 to 40 miles', '168', '14%'],
+        ['More than 40 miles', '36', '3%'],
+        ['Total', '1,200', '100%'],
+      ] } },
+      { h: 'Arrival time' },
+      { table: { cols: ['Time of arrival', 'Sessions'], rows: [
+        ['6am to 11am', '174'],
+        ['11am to 4pm', '246'],
+        ['4pm to 9pm', '588'],
+        ['9pm to 6am', '192'],
+      ] } },
+      { h: 'Who comes back' },
+      { p: 'The 1,200 sessions came from 588 distinct vehicles. 200 of them returned five times or more and account for 812 sessions between them. The remaining 388 vehicles visited once.' },
+      { p: 'A counter survey asked those 200 regulars where their car spends the night. 150 park on the street or in a shared lot with no outlet. 34 have a garage outlet they describe as shared or unreliable. 16 charge at work.' },
+      { note: 'The pilot has only ever run on a neighbourhood corner. It records who came to this location. It cannot record who would have come to a different one.' },
+    ],
+  },
+  {
+    id: 'dwell',
+    label: 'Charge and stay times, six months',
+    kind: 'Operating data',
+    dateline: 'Alder Street corner · same period',
+    bearsOn: ['position', 'audience'],
+    body: 'A charge to 80 percent takes 25 minutes. The median stay is 31 minutes. People order in the first two minutes and leave when they are finished, not when the car is.',
+    doc: [
+      { p: 'Charge duration is taken from the charger. Stay length is taken from the point of sale and the door counter, matched to the session.' },
+      { p: 'Median charge to 80 percent: 25 minutes. Median stay: 31 minutes. The median customer stays six minutes after their car is ready.' },
+      { h: 'How long people stay' },
+      { table: { cols: ['Stay length', 'Share of sessions'], rows: [
+        ['Under 20 minutes', '12%'],
+        ['20 to 30 minutes', '34%'],
+        ['30 to 45 minutes', '41%'],
+        ['Over 45 minutes', '13%'],
+      ] } },
+      { h: 'What they do inside' },
+      { p: '78 percent of orders are placed within the first two minutes of arrival. 852 of the 1,200 sessions include a purchase, and the median ticket is $8.40.' },
+      { quote: 'People do not leave when the car is finished. They leave when they are finished.' },
+      { p: 'From the six month operating review, written by the site manager.' },
+    ],
+  },
+  {
+    id: 'survey',
+    label: 'Route 92 interchange survey',
+    kind: 'Site assessment',
+    dateline: 'Commissioned November · prepared by an outside firm',
+    bearsOn: ['channel'],
+    body: 'The interchange parcel sees roughly forty times the passing traffic of Alder Street, at 3.1 times the rent. Drivers at the fast chargers already on that corridor wait in their cars with the doors closed.',
+    doc: [
+      { p: 'A 0.4 acre parcel at the Route 92 interchange, available on a five year lease. Prepared for Kado in November.' },
+      { table: { cols: ['Measure', 'Route 92 parcel', 'Alder Street'], rows: [
+        ['Vehicles passing per day', '41,000', '1,020'],
+        ['Monthly rent', '$9,300', '$3,000'],
+      ] } },
+      { p: 'The interchange carries roughly forty times the traffic at 3.1 times the rent.' },
+      { h: 'What that traffic does' },
+      { p: 'We observed 240 charging sessions across the three existing fast charge sites on this corridor, over six weekdays.' },
+      { table: { cols: ['Driver behaviour during the charge', 'Sessions'], rows: [
+        ['Stayed in the vehicle', '198'],
+        ['Left and returned within six minutes', '31'],
+        ['Left for longer than six minutes', '11'],
+      ] } },
+      { p: '198 of the 240 drivers, just over four in five, stayed in their vehicle for the whole charge. Of those who got out, most used a restroom and came back.' },
+      { note: 'Passing traffic is a count of vehicles, not of visits. Nothing in this survey establishes that a driver who passes would stop, or that a driver who stops would come inside.' },
+    ],
+  },
+  {
+    id: 'note',
+    label: 'Elena Voss, founder, January note',
+    kind: 'Internal memo',
+    dateline: 'To the team · 14 January',
+    bearsOn: ['position', 'channel'],
+    body: 'One page on the night she was stranded at 4 percent outside Gilroy, and why Kado exists so nobody has that night again. Her line about the alternative: the neighbourhood is where chargers go to be ignored.',
+    doc: [
+      { p: 'I want to write down why this company exists before we decide where it goes next, because I think the two questions are the same question.' },
+      { p: 'Four years ago I was at 4 percent outside Gilroy at ten at night, doing the arithmetic on whether I would make the next exit. I made it. The charger there worked. I sat in that car for forty minutes in the dark with nowhere to go and nothing open, and I decided somebody should build the other version of that night.' },
+      { quote: 'The neighbourhood is where chargers go to be ignored.' },
+      { p: 'Here is my argument, and I want it argued with rather than humoured. A brand is chosen in the moment it is needed, not in the moment it is convenient. Nobody tells a story about the charger four streets from their flat. They tell the story about the one that saved them.' },
+      { p: 'I know what the pilot data says. I would ask you to notice what it cannot say. We put our only corner in a neighbourhood, so it measured neighbours. That is not a finding about demand, it is a finding about where we put the corner.' },
+      { p: 'If you are going to tell me the road is wrong, tell me with something the pilot could not have produced by construction. I will listen. I would rather be corrected in January than in September.' },
+    ],
+  },
 ]
 
 /* People in this world who will push back. Naming one in the text, and

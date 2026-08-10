@@ -146,15 +146,41 @@ h2.display{font-family:var(--serif); font-size:24px; font-weight:500; line-heigh
 .assignment .brief-body{font-size:14.5px; line-height:1.65; white-space:pre-wrap; color:var(--ink)}
 .packrow{margin-top:18px; padding-top:16px; border-top:1px solid var(--hair)}
 .packsub{font-size:12.5px; color:var(--graphite); line-height:1.55; margin:4px 0 10px}
-.packchips{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px}
-.packchips button{
-  font-family:var(--sans); font-size:12px; color:var(--graphite); background:var(--paper);
-  border:1px solid var(--hair); border-radius:99px; padding:5px 13px; cursor:pointer; transition:.15s;
+
+/* the pack as a shelf of documents, each one openable and readable */
+.srclist{display:flex; flex-direction:column; gap:8px; margin-top:4px}
+.srclist button{
+  display:block; width:100%; text-align:left; cursor:pointer;
+  background:var(--paper); border:1px solid var(--hair); border-left:2px solid var(--hair);
+  border-radius:3px; padding:12px 14px; font-family:var(--sans); transition:.15s;
 }
-.packchips button:hover{border-color:var(--graphite); color:var(--ink)}
-.packchips button.open{background:var(--ink); color:var(--paper); border-color:var(--ink)}
-.packbody{margin-top:12px; border-left:2px solid var(--hair); padding:4px 0 4px 14px}
-.packbody p{font-size:13.5px; color:var(--graphite); line-height:1.6; margin-top:5px}
+.srclist button:hover{border-left-color:var(--signal); background:var(--surface)}
+.sl-label{display:block; font-size:13px; font-weight:500; color:var(--ink)}
+.sl-meta{display:block; font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); margin-top:3px}
+.sl-body{display:block; font-size:12px; color:var(--graphite); line-height:1.5; margin-top:7px}
+.sl-open{display:block; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--signal); margin-top:9px}
+
+/* a source, read as the document it is */
+.backlink{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--graphite);
+  background:none; border:none; border-bottom:1px solid var(--hair); cursor:pointer; padding:2px 0; font-family:var(--sans)}
+.backlink:hover{color:var(--ink); border-bottom-color:var(--ink)}
+.srcdoc{margin-top:16px}
+.srcdoc h3{font-family:var(--serif); font-size:19px; font-weight:500; margin-top:4px; line-height:1.3}
+.srcdoc .dateline{font-size:11.5px; color:var(--faint); margin-top:4px; padding-bottom:14px; border-bottom:1px solid var(--hair)}
+.srcdoc h4{font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--graphite); font-weight:500; margin-top:20px}
+.srcdoc p{font-size:13.5px; color:var(--ink); line-height:1.65; margin-top:10px}
+.srcdoc blockquote{font-family:var(--serif); font-size:16px; line-height:1.45; margin:16px 0 0; padding-left:14px; border-left:2px solid var(--signal)}
+.srcdoc table{width:100%; border-collapse:collapse; margin-top:10px; font-size:12.5px}
+.srcdoc th{text-align:left; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--graphite);
+  font-weight:500; padding:7px 8px; border-bottom:1px solid var(--hair)}
+.srcdoc td{padding:7px 8px; border-bottom:1px solid var(--hair); color:var(--ink)}
+.srcdoc td.num{font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap}
+.srcdoc tr:last-child td{border-bottom:none}
+.srcnote{font-size:12.5px; color:var(--graphite); line-height:1.6; margin-top:16px; padding:11px 13px;
+  background:var(--dim); border-radius:3px}
+.srcdoc .bearson{font-size:11px; color:var(--faint); margin-top:22px; padding-top:12px; border-top:1px solid var(--hair)}
+.inlinesrc{margin-top:16px; padding-top:4px; border-top:1px solid var(--hair)}
+.srccard .backlink{display:block}
 .howto{font-size:12.5px; color:var(--faint); margin-bottom:26px; line-height:1.55}
 .block .ovl .tag{color:var(--faint); font-weight:400}
 
@@ -178,7 +204,7 @@ p.body:empty::before{content:attr(data-ph); color:var(--faint); font-style:itali
 .drawer-veil{position:fixed; inset:0; background:rgba(26,25,21,.22); z-index:74; opacity:0; pointer-events:none; transition:opacity .18s}
 .drawer-veil.on{opacity:1; pointer-events:auto}
 .drawer{
-  position:fixed; top:0; bottom:0; left:0; width:460px; max-width:92vw; z-index:75;
+  position:fixed; top:0; bottom:0; left:0; width:540px; max-width:94vw; z-index:75;
   background:var(--paper); border-right:1px solid var(--hair); box-shadow:14px 0 40px rgba(26,25,21,.12);
   transform:translateX(-102%); transition:transform .22s ease; display:flex; flex-direction:column;
 }

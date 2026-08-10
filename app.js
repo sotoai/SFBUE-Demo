@@ -175,7 +175,12 @@ function renderGraphInto(host, { width }) {
       ${d.quote ? `<div class="gd-quote">${esc(d.quote)}</div>` : ''}
       ${d.note ? `<div class="gd-note">${esc(d.note)}</div>` : ''}
       ${d.grows ? `<div class="gd-grows"><span class="ovl f">What grows it</span>${esc(d.grows)}</div>` : ''}
+      ${graphFocus.startsWith('src:') ? `<button class="backlink" id="gdRead" style="margin-top:10px">Read this document</button>` : ''}
       ${d.relations?.length ? `<div class="gd-rel"><span class="ovl f">Connected to</span>${d.relations.map(r => `<div>${esc(r)}</div>`).join('')}</div>` : ''}`
+    detail.querySelector('#gdRead')?.addEventListener('click', () => {
+      $('veil').classList.remove('on')
+      openDrawer(); readSource(graphFocus.slice(4))
+    })
   }
   paint()
 
@@ -400,9 +405,15 @@ function renderAssignment(container, { withActions }) {
     <div class="brief-body">${esc(w.brief)}</div>
     <div class="packrow">
       <span class="ovl" style="margin-bottom:2px">The evidence pack</span>
-      <div class="packsub">Four documents from Kado. Open any of them here, any time. Your draft should hold up against what they say.</div>
-      <div class="packchips">${EVIDENCE_PACK.map(p => `<button data-pack="${p.id}">${esc(p.label)}</button>`).join('')}</div>
-      <div class="packbody hide"></div>
+      <div class="packsub">Four documents from Kado. Read any of them here, any time. Your draft should hold up against what they say.</div>
+      <div class="srclist">${EVIDENCE_PACK.map(p => `
+        <button data-pack="${p.id}">
+          <span class="sl-label">${esc(p.label)}</span>
+          <span class="sl-meta">${esc(p.kind)} · ${esc(p.dateline)}</span>
+          <span class="sl-body">${esc(p.body)}</span>
+          <span class="sl-open">Read the document</span>
+        </button>`).join('')}
+      </div>
     </div>
     ${withActions ? `
     <div class="beginrow">
@@ -416,28 +427,78 @@ function renderAssignment(container, { withActions }) {
     if (begin) { beginWork(begin.dataset.begin); return }
     const chip = asEl(e.target)?.closest('button[data-pack]')
     if (!chip) return
-    const pack = EVIDENCE_PACK.find(p => p.id === chip.dataset.pack)
-    const body = container.querySelector('.packbody')
-    const already = chip.classList.contains('open')
-    container.querySelectorAll('.packchips button').forEach(b => b.classList.remove('open'))
-    if (already) { body.classList.add('hide'); return }
-    chip.classList.add('open')
-    body.classList.remove('hide')
-    body.innerHTML = `<span class="ovl f">${esc(pack.label)}</span><p>${esc(pack.body)}</p>`
-    if (pack.id === 'log') evidenceOpened.add('channel')
-    if (!openedPacks.has(pack.id)) {
-      openedPacks.add(pack.id)
-      capture(S.record, `Opened ${pack.label}`, { sourceId: pack.id })
-      renderRecord()
-    }
+    // On the begin page there is no drawer yet, so the document opens in
+    // place; once working, it opens in the drawer beside the canvas.
+    if (S.started) { openDrawer(); readSource(chip.dataset.pack) }
+    else readSourceInline(container, chip.dataset.pack)
   }
 }
 
+/* Before work begins the assignment is the page, so a source opens under it. */
+function readSourceInline(container, id) {
+  const pack = EVIDENCE_PACK.find(p => p.id === id)
+  if (!pack) return
+  let holder = container.querySelector('.inlinesrc')
+  if (!holder) { holder = el('div', 'inlinesrc'); container.querySelector('.packrow').appendChild(holder) }
+  holder.innerHTML = `<div class="srcdoc">
+      <span class="ovl f">${esc(pack.kind)}</span>
+      <h3>${esc(pack.label)}</h3>
+      <div class="dateline">${esc(pack.dateline)}</div>
+      ${sourceDocHTML(pack)}
+    </div>`
+  holder.scrollIntoView({ block: 'nearest' })
+  noteSourceOpened(pack)
+}
+
+/* ---------- reading the sources ----------
+   A claim can only be checked against a source you can actually read, so the
+   pack opens as documents rather than as summaries of documents. */
+
+function sourceDocHTML(pack) {
+  return pack.doc.map(b => {
+    if (b.h) return `<h4>${esc(b.h)}</h4>`
+    if (b.p) return `<p>${esc(b.p)}</p>`
+    if (b.quote) return `<blockquote>${esc(b.quote)}</blockquote>`
+    if (b.note) return `<div class="srcnote">${esc(b.note)}</div>`
+    if (b.table) return `<table><thead><tr>${b.table.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+      <tbody>${b.table.rows.map(r => `<tr>${r.map((c, i) => `<td${i ? ' class="num"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+    return ''
+  }).join('')
+}
+
+function readSource(id) {
+  const pack = EVIDENCE_PACK.find(p => p.id === id)
+  if (!pack) return
+  const body = $('drawerBody')
+  body.innerHTML = `<button class="backlink" id="drawerBack">Back to the assignment</button>
+    <div class="srcdoc">
+      <span class="ovl f">${esc(pack.kind)}</span>
+      <h3>${esc(pack.label)}</h3>
+      <div class="dateline">${esc(pack.dateline)}</div>
+      ${sourceDocHTML(pack)}
+      <div class="bearson">Bears on: ${pack.bearsOn.map(s => esc(PROV.get(s)?.heading || s)).join(', ')}</div>
+    </div>`
+  body.scrollTop = 0
+  $('drawerBack').addEventListener('click', () => openDrawer())
+  noteSourceOpened(pack)
+}
+
+/* Opening a source is intake. It is captured, never credited, and it arms the
+   evidence wiring for the passages the source bears on. */
+function noteSourceOpened(pack) {
+  for (const sec of pack.bearsOn) evidenceOpened.add(sec)
+  if (openedPacks.has(pack.id)) return
+  openedPacks.add(pack.id)
+  capture(S.record, `Read ${pack.label}`, { sourceId: pack.id })
+  renderRecord()
+}
+
 /* The drawer: the assignment beside the work, put away in one click. */
-function openDrawer() {
+function openDrawer(focusPack) {
   renderAssignment($('drawerBody'), { withActions: false })
   $('drawer').classList.add('on')
   $('drawerVeil').classList.add('on')
+  if (focusPack) $('drawerBody').querySelector('.packrow')?.scrollIntoView({ block: 'start' })
 }
 function closeDrawer() {
   $('drawer').classList.remove('on')
@@ -506,9 +567,11 @@ function renderCanvas() {
   bar.innerHTML = `<span class="ovl">Draft canvas</span>
     <span class="canvastitle">Launch concept. ${PRODUCT.name}.</span>
     <span class="grow"></span>
+    <button class="ghostbtn" id="btnSources">sources</button>
     <button class="ghostbtn" id="btnAssignment">assignment</button>`
   c.appendChild(bar)
-  bar.querySelector('#btnAssignment').addEventListener('click', openDrawer)
+  bar.querySelector('#btnAssignment').addEventListener('click', () => openDrawer())
+  bar.querySelector('#btnSources').addEventListener('click', () => openDrawer(true))
 
   const doc = el('div', 'doc')
   const foundations = S.started === 'foundations'
@@ -1054,17 +1117,21 @@ async function insertBlock(type, after) {
   }
 
   if (type === 'source') {
-    const pack = EVIDENCE_PACK[Math.floor(Math.random() * EVIDENCE_PACK.length)]
-    if (pack.id === 'log') evidenceOpened.add('channel')
+    // The source that speaks to this passage, rather than an arbitrary one.
+    const here = after.dataset.block
+    const pack = EVIDENCE_PACK.find(p => (p.bearsOn || []).includes(here)) || EVIDENCE_PACK[0]
     block.innerHTML = `<button class="gutter-add" title="Add below">+</button>
       <span class="ovl">Source</span>
-      <div class="card" style="padding:16px 18px;margin-top:6px">
+      <div class="card srccard" style="padding:16px 18px;margin-top:6px">
         <span class="ovl f">${esc(pack.label)}</span>
         <p style="font-size:14px;color:var(--graphite);margin-top:6px;line-height:1.55">${esc(pack.body)}</p>
+        <button class="backlink" data-read="${pack.id}" style="margin-top:10px">Read the full document</button>
       </div>`
     after.after(block)
-    capture(S.record, 'Pulled a source into the document')
-    renderRecord()
+    block.querySelector('[data-read]').addEventListener('click', ev => {
+      openDrawer(); readSource(ev.target.dataset.read)
+    })
+    noteSourceOpened(pack)
   }
 
   if (type === 'image') {
