@@ -200,23 +200,64 @@ function addNote(kind, ovl, title, body) {
   return n
 }
 
-/* ---------- the document ---------- */
+/* ---------- the document ----------
+   The assignment comes first. A student who lands here reads the brief in
+   their teacher's words, sees the evidence pack they were given, and only
+   then meets their own draft, framed as theirs and picked up mid week. */
 function renderDoc() {
   const c = $('doccol')
+  const w = WORLDS.university
   c.innerHTML = ''
   const doc = el('div', 'doc')
-  doc.innerHTML = `<h1>Launch concept. ${PRODUCT.name}.</h1>
-    <div class="docmeta">${PRODUCT.maker} · draft, five working days</div>`
+
+  const assignment = el('div', 'assignment')
+  assignment.innerHTML = `
+    <div class="from"><span class="ovl">Your assignment</span><span class="ovl f">From ${esc(w.evaluator.name)} · Applied Launch Studio</span></div>
+    <div class="brief-body">${esc(w.brief)}</div>
+    <div class="packrow">
+      <span class="ovl f" style="margin-bottom:8px">The evidence pack, four sources</span>
+      <div class="packchips">${EVIDENCE_PACK.map(p => `<button data-pack="${p.id}">${esc(p.label)}</button>`).join('')}</div>
+      <div class="packbody hide" id="packbody"></div>
+    </div>`
+  doc.appendChild(assignment)
+
+  doc.appendChild(el('div', 'draft-head', `<h1>Launch concept. ${PRODUCT.name}.</h1>
+    <div class="docmeta">Your draft · day four of five</div>
+    <div class="howto">Select any passage to update it, ask about it, tag it for research, or picture it. Your record fills in on the right as you work.</div>`))
+
   for (const b of DRAFT) {
     const block = el('div', 'block')
     block.dataset.block = b.id
     block.innerHTML = `<button class="gutter-add" title="Add below">+</button>
-      <span class="ovl">${b.heading}</span>
+      <span class="ovl"><span class="tag">${b.tag ? esc(b.tag) + ' · ' : ''}</span>${b.heading}</span>
       <p class="body" contenteditable="true" spellcheck="false" data-block="${b.id}">${esc(b.body)}</p>`
     doc.appendChild(block)
   }
   c.appendChild(doc)
+
+  assignment.addEventListener('click', e => {
+    const chip = asEl(e.target)?.closest('button[data-pack]')
+    if (!chip) return
+    const pack = EVIDENCE_PACK.find(p => p.id === chip.dataset.pack)
+    const body = assignment.querySelector('#packbody')
+    const already = chip.classList.contains('open')
+    assignment.querySelectorAll('.packchips button').forEach(b => b.classList.remove('open'))
+    if (already) { body.classList.add('hide'); return }
+    chip.classList.add('open')
+    body.classList.remove('hide')
+    body.innerHTML = `<span class="ovl f">${esc(pack.label)}</span>
+      <p>${esc(pack.body)}</p>`
+    // Opening the log is opening the evidence that contradicts the channel
+    // section. Reading is captured, not credited; what it changes is credited.
+    if (pack.id === 'log') evidenceOpened.add('channel')
+    if (!openedPacks.has(pack.id)) {
+      openedPacks.add(pack.id)
+      capture(S.record, `Opened ${pack.label}`)
+      renderRecord()
+    }
+  })
 }
+const openedPacks = new Set()
 
 /* Typing alone stays dark. Typing after opening the evidence that contradicts
    the passage is Reasoning, and the record can tell the two apart. */

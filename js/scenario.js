@@ -59,26 +59,32 @@ export const PRODUCT = {
   ],
 }
 
-/* The first draft. Competent, fluent, and wrong in exactly one place. */
+/* The draft so far. The brief asks the writer to decide three things, and the
+   sections are those three decisions, so the headings carry their own
+   provenance. Competent, fluent, and wrong in exactly one place. */
 export const DRAFT = [
   {
     id: 'audience',
-    heading: 'Who it is for',
+    tag: 'Decision one of three',
+    heading: 'Who Kado is for',
     body: 'Kado is for the driver who bought the future and still spends Tuesday night hunting a plug. The car is quiet, the software is lovely, and the charging is a chore nobody designed. We take the worst half hour of owning an electric car and hand it back.',
   },
   {
     id: 'position',
-    heading: 'What it stands for',
+    tag: 'Decision two of three',
+    heading: 'What Kado stands for',
     body: 'Kado stands for the half hour, not the charge. Every other charger sells speed and apologizes for the wait. We built the wait worth keeping: a warm room, a short menu, a table by the glass where your car sits in view. The charge is table stakes. The half hour is why you come back.',
   },
   {
     id: 'channel',
+    tag: 'Decision three of three',
     heading: 'Where the next corners go',
     flawed: true,
     body: 'Put the first corners on the road. Our customer is the driver between cities: distance is when a battery becomes a fear, and fear is when a brand gets chosen. The Route 92 interchange sees forty times the passing traffic of any neighborhood corner, and a driver we rescue once will tell that story for years. Win the road first. The neighborhood follows on its own.',
   },
   {
     id: 'first-year',
+    tag: 'Beyond the brief',
     heading: 'First year',
     body: 'Open corner two in spring and corner three by fall. Review the pilot numbers monthly. Keep the menu short.',
   },
