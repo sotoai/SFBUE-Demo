@@ -3,63 +3,61 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Evolv · capability read from real work</title>
-<meta name="description" content="A working demonstration. A student writes a launch concept, and a record reads capability from the work itself: what she noticed, checked, decided, and refused to give up.">
-<meta property="og:title" content="Evolv · capability read from real work">
-<meta property="og:description" content="A student writes a launch concept. A record reads capability from the work itself.">
-<meta property="og:type" content="website">
+<title>Evolv</title>
+<meta name="description" content="A work surface that reads capability from ordinary work. A student writes, and their own record fills in beside them as they go.">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<div id="app">
-
 <header>
   <div class="wordmark">evolv</div>
-  <div class="seat" id="seat">
-    <span class="dot"></span>
-    <span class="who" id="seatWho">·</span>
-    <span class="name" id="seatName"></span>
-    <span class="place" id="seatPlace"></span>
-  </div>
+  <nav class="tabs" id="tabs">
+    <button data-view="student" class="on">Student</button>
+    <button data-view="teacher">Teacher</button>
+  </nav>
   <div class="chrome-right">
     <span class="integration off" id="intLang">language <b>·</b></span>
     <span class="integration off" id="intImg">images <b>·</b></span>
-    <button class="ghostbtn" id="btnWhy">?</button>
     <button class="ghostbtn" id="btnTrace">trace</button>
+    <button class="ghostbtn" id="btnWhy">?</button>
   </div>
 </header>
 
-<main>
-  <!-- evaluator view, which later narrows into this same element as a panel -->
-  <aside class="panel hide" id="panel">
-    <div class="panel-head">
-      <span class="ovl f" id="panelSeat">Faculty view</span>
-      <div class="title" id="panelTitle">Prof. Marisol Vega</div>
+<main id="main">
+
+  <!-- ---------- student view: the work, with their own record beside it ---------- -->
+  <section id="studentView" class="view">
+    <div class="workmain">
+      <div class="doccol" id="doccol"></div>
+      <aside class="margincol" id="margin"></aside>
     </div>
-    <div class="panel-body" id="panelBody"></div>
-  </aside>
+    <aside class="sidebar" id="sidebar">
+      <div class="side-head">
+        <span class="ovl">Your record</span>
+        <div class="side-sub" id="sideSub">Fills in as you work. Nothing else is collected.</div>
+      </div>
+      <div class="side-body" id="sideBody"></div>
+    </aside>
+  </section>
 
-  <div class="stage">
-    <div class="center" id="center"></div>
-    <aside class="margincol hide" id="margin"></aside>
-  </div>
+  <!-- ---------- teacher view: the brief, and the same record ---------- -->
+  <section id="teacherView" class="view hide">
+    <div class="teachwrap">
+      <div class="teachleft">
+        <span class="ovl">The brief you set</span>
+        <div class="card brief-sheet" id="teachBrief"></div>
+      </div>
+      <div class="teachright">
+        <div class="side-head" style="padding:0 0 14px">
+          <span class="ovl">Amara Osei · her record</span>
+          <div class="side-sub">The same record she sees. A record about a person that the person cannot see is surveillance.</div>
+        </div>
+        <div id="teachRecord"></div>
+      </div>
+    </div>
+  </section>
+
 </main>
-
-<div class="strip">
-  <div>
-    <div class="what" id="stripWhat">Evolv</div>
-    <div class="ovl f" id="stripStage" style="margin-top:2px"></div>
-  </div>
-  <div class="why" id="stripWhy"></div>
-  <div class="grow"></div>
-  <div class="nav">
-    <button class="btn small" id="btnBack">Back</button>
-    <button class="btn solid" id="btnNext">Continue</button>
-  </div>
-</div>
-
-</div><!-- /#app -->
 
 <div class="pill" id="pill">
   <button data-act="update">Update</button>
@@ -68,7 +66,12 @@
   <div class="sep"></div>
   <button data-act="tag">Tag for research</button>
   <div class="sep"></div>
-  <button data-act="image">Generate image</button>
+  <button data-act="image">Picture it</button>
+</div>
+
+<div class="askform" id="askform">
+  <input id="askInput" placeholder="Ask about this passage">
+  <button id="askGo" class="btn small solid">Ask</button>
 </div>
 
 <div class="veil" id="veil"><div class="modal" id="modal"></div></div>
