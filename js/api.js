@@ -1,42 +1,34 @@
 /* Client side of the two integrations. Every call can fail, and every failure
-   returns prepared content instead of breaking the demo in front of a room. */
+   returns prepared content instead of breaking the demo in front of a room.
+
+   The page never holds a key and never composes a system prompt. It names a
+   task and sends the passage. Whatever is behind the API, the local server or
+   the public proxy, owns the instructions. */
+
+import { api } from './config.js'
 
 export const state = { language: false, images: false }
 
 export async function loadStatus() {
   try {
-    const s = await (await fetch('/api/status')).json()
+    const s = await (await fetch(api('/api/status'))).json()
     state.language = !!s.language
     state.images = !!s.images
   } catch { /* server not reachable; both stay false */ }
   return state
 }
 
-const WORLD = `You are the assistant inside Evolv, a work surface where a person is writing a launch concept document. You are part of the product. Never mention being an AI model, Anthropic, or a demo.
-
-THE WORLD, never contradict it:
-Halden Atelier ships Solveil in February 2027. Solveil is a ceiling-integrated daylight surface, a 1.2 by 1.2 metre module that replaces a section of ceiling and reproduces sky light tuned to a latitude and a date. It suits rooms without good windows: interior kitchens, basement conversions, north-facing studios, deep floor plates.
-Facts: minimum 140 mm of empty depth is required above the finished ceiling, and the driver is hard wired, so the module can only be installed while a ceiling is open. List price $3,400 per module, a typical kitchen takes three. Median 11 months from the moment a reflected ceiling plan is fixed to the day a panel is energised. Across 71 beta installs, 71% arrived through an architect or lighting designer and 4% came from a homeowner who found Solveil first. Direct gross margin is 61%, through specification channels after representative and dealer margin it is 38%. Founder Ines Halden wrote in January that specification channels turn design products into commodities and that Halden will be a consumer brand first.
-The document currently recommends leading direct to consumer. That is fluent and structurally wrong: installation is a construction decision made by whoever fixes the ceiling plan, about 11 months ahead, so a consumer campaign creates desire in people who physically cannot buy. The defensible position leads through architects and lighting designers, and names the cost: lower margin, slower first revenue, and a founder who has to be persuaded.
-
-STYLE, absolute: plain prose, no markdown, no lists, no headings, no asterisks. No em dashes, use commas or full stops. No exclamation marks. Never use the words grade, quiz, score, certificate, course, curriculum, or skills. Be concrete and brief. Never flatter.`
-
-async function language(instruction, userText, maxTokens = 220) {
-  if (!state.language) return null
+async function language(task, payload, fallback) {
+  if (!state.language) return fallback
   try {
-    const r = await fetch('/api/language', {
+    const r = await fetch(api('/api/language'), {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        system: WORLD + '\n\nTASK: ' + instruction,
-        messages: [{ role: 'user', content: userText }],
-        max_tokens: maxTokens,
-        effort: 'low',
-      }),
+      body: JSON.stringify({ task, ...payload }),
     })
-    if (!r.ok) return null
+    if (!r.ok) return fallback
     const d = await r.json()
-    return sanitize(d.text)
-  } catch { return null }
+    return sanitize(d.text) || fallback
+  } catch { return fallback }
 }
 
 export function sanitize(t) {
@@ -46,30 +38,15 @@ export function sanitize(t) {
 /* ---------- the four editor actions ---------- */
 
 export async function askAbout(passage, question, fallback) {
-  const out = await language(
-    'The person selected a passage of their own document and asked a question about it. Answer their actual question in two or three sentences, using the world facts. If the passage is wrong, say so plainly and say what the evidence shows. Do not rewrite the passage.',
-    `PASSAGE:\n"${passage}"\n\nTHEIR QUESTION: ${question}`,
-    260,
-  )
-  return out || fallback
+  return language('ask', { passage, question }, fallback)
 }
 
 export async function rewrite(passage, instruction, fallback) {
-  const out = await language(
-    'Rewrite the passage according to the instruction. Return only the rewritten passage, under 80 words, in the same voice. No preamble, no explanation.',
-    `PASSAGE:\n"${passage}"\n\nINSTRUCTION: ${instruction || 'Make it sharper and more specific, using the world facts.'}`,
-    200,
-  )
-  return out || fallback
+  return language('rewrite', { passage, instruction }, fallback)
 }
 
 export async function researchLeads(passage, fallback) {
-  const out = await language(
-    'The person tagged this passage for further research. Name the two specific things in the evidence pack that would settle it, in two short sentences. Be concrete about which document and what it would show.',
-    `PASSAGE:\n"${passage}"`,
-    200,
-  )
-  return out || fallback
+  return language('leads', { passage }, fallback)
 }
 
 /* ---------- images ---------- */
@@ -81,7 +58,7 @@ async function pollTask(taskId, onTick) {
     const elapsed = Math.round((Date.now() - started) / 1000)
     if (onTick) onTick(elapsed)
     let s
-    try { s = await (await fetch('/api/image/' + taskId)).json() } catch { continue }
+    try { s = await (await fetch(api('/api/image/' + taskId))).json() } catch { continue }
     if (s.status === 'COMPLETED') {
       const url = (s.generated || [])[0]
       return url ? { ok: true, url, seconds: elapsed } : { ok: false, reason: 'no_image' }
@@ -95,7 +72,7 @@ async function pollTask(taskId, onTick) {
 export async function editImage(imageUrl, instruction, onTick) {
   if (!state.images) return { ok: false, reason: 'not_configured' }
   try {
-    const r = await fetch('/api/image/edit', {
+    const r = await fetch(api('/api/image/edit'), {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ image_url: imageUrl, instruction }),
     })
@@ -109,7 +86,7 @@ export async function editImage(imageUrl, instruction, onTick) {
 export async function upscaleImage(imageUrl, onTick) {
   if (!state.images) return { ok: false, reason: 'not_configured' }
   try {
-    const r = await fetch('/api/image/upscale', {
+    const r = await fetch(api('/api/image/upscale'), {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ image_url: imageUrl }),
     })
@@ -122,7 +99,7 @@ export async function upscaleImage(imageUrl, onTick) {
 export async function generateImage(prompt, onTick) {
   if (!state.images) return { ok: false, reason: 'not_configured' }
   try {
-    const r = await fetch('/api/image', {
+    const r = await fetch(api('/api/image'), {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ prompt, aspect_ratio: 'widescreen_16_9', resolution: '1k' }),
     })
@@ -135,7 +112,7 @@ export async function generateImage(prompt, onTick) {
       const elapsed = Math.round((Date.now() - started) / 1000)
       if (onTick) onTick(elapsed)
       let s
-      try { s = await (await fetch('/api/image/' + d.task_id)).json() } catch { continue }
+      try { s = await (await fetch(api('/api/image/' + d.task_id))).json() } catch { continue }
       if (s.status === 'COMPLETED') {
         const url = (s.generated || [])[0]
         return url ? { ok: true, url, seconds: elapsed } : { ok: false, reason: 'no_image' }
