@@ -17,6 +17,7 @@ const asEl = n => (n && n.nodeType === 1 ? n : n && n.parentElement) || null
 /* ---------- session ---------- */
 const S = {
   view: 'student',
+  started: null,          // null until begun | 'blank' | 'foundations'
   record: createRecord('university'),
   intent: WORLDS.university.wants,
   busy: false,
@@ -200,65 +201,129 @@ function addNote(kind, ovl, title, body) {
   return n
 }
 
-/* ---------- the document ----------
-   The assignment comes first. A student who lands here reads the brief in
-   their teacher's words, sees the evidence pack they were given, and only
-   then meets their own draft, framed as theirs and picked up mid week. */
-function renderDoc() {
-  const c = $('doccol')
-  const w = WORLDS.university
-  c.innerHTML = ''
-  const doc = el('div', 'doc')
+/* ---------- the assignment, the begin flow, and the canvas ----------
 
-  const assignment = el('div', 'assignment')
-  assignment.innerHTML = `
-    <div class="from"><span class="ovl">Your assignment</span><span class="ovl f">From ${esc(w.evaluator.name)} · Applied Launch Studio</span></div>
+   The student reads the assignment first, then chooses how to begin: a blank
+   page scaffolded with the brief's three decisions, or foundations drafted
+   for them. Either way the canvas owns the screen afterward, and the
+   assignment lives in a drawer they can pull up and put away. */
+
+const openedPacks = new Set()
+
+/* The brief and its evidence pack, rendered into any container. Opening a
+   source is captured, not credited; opening the log arms the evidence wiring
+   for the section it contradicts. */
+function renderAssignment(container, { withActions }) {
+  const w = WORLDS.university
+  container.innerHTML = `
+    <div class="from"><span class="ovl f">From ${esc(w.evaluator.name)} · Applied Launch Studio</span></div>
     <div class="brief-body">${esc(w.brief)}</div>
     <div class="packrow">
       <span class="ovl" style="margin-bottom:2px">The evidence pack</span>
       <div class="packsub">Four documents from Kado. Open any of them here, any time. Your draft should hold up against what they say.</div>
       <div class="packchips">${EVIDENCE_PACK.map(p => `<button data-pack="${p.id}">${esc(p.label)}</button>`).join('')}</div>
-      <div class="packbody hide" id="packbody"></div>
-    </div>`
-  doc.appendChild(assignment)
+      <div class="packbody hide"></div>
+    </div>
+    ${withActions ? `
+    <div class="beginrow">
+      <button class="btn" data-begin="blank">Start from a blank page</button>
+      <button class="btn solid" data-begin="foundations">Draft the foundations</button>
+      <div class="beginhint">Foundations are a first pass at the three decisions, drafted for you to work against. Starting text is never read as your capability. What you do with it is.</div>
+    </div>` : ''}`
 
-  doc.appendChild(el('div', 'draft-head', `<h1>Launch concept. ${PRODUCT.name}.</h1>
-    <div class="docmeta">Your draft · day four of five</div>
-    <div class="howto">Select any passage to update it, ask about it, tag it for research, or picture it. Your record fills in on the right as you work.</div>`))
-
-  for (const b of DRAFT) {
-    const block = el('div', 'block')
-    block.dataset.block = b.id
-    block.innerHTML = `<button class="gutter-add" title="Add below">+</button>
-      <span class="ovl"><span class="tag">${b.tag ? esc(b.tag) + ' · ' : ''}</span>${b.heading}</span>
-      <p class="body" contenteditable="true" spellcheck="false" data-block="${b.id}">${esc(b.body)}</p>`
-    doc.appendChild(block)
-  }
-  c.appendChild(doc)
-
-  assignment.addEventListener('click', e => {
+  container.onclick = e => {
+    const begin = asEl(e.target)?.closest('button[data-begin]')
+    if (begin) { beginWork(begin.dataset.begin); return }
     const chip = asEl(e.target)?.closest('button[data-pack]')
     if (!chip) return
     const pack = EVIDENCE_PACK.find(p => p.id === chip.dataset.pack)
-    const body = assignment.querySelector('#packbody')
+    const body = container.querySelector('.packbody')
     const already = chip.classList.contains('open')
-    assignment.querySelectorAll('.packchips button').forEach(b => b.classList.remove('open'))
+    container.querySelectorAll('.packchips button').forEach(b => b.classList.remove('open'))
     if (already) { body.classList.add('hide'); return }
     chip.classList.add('open')
     body.classList.remove('hide')
-    body.innerHTML = `<span class="ovl f">${esc(pack.label)}</span>
-      <p>${esc(pack.body)}</p>`
-    // Opening the log is opening the evidence that contradicts the channel
-    // section. Reading is captured, not credited; what it changes is credited.
+    body.innerHTML = `<span class="ovl f">${esc(pack.label)}</span><p>${esc(pack.body)}</p>`
     if (pack.id === 'log') evidenceOpened.add('channel')
     if (!openedPacks.has(pack.id)) {
       openedPacks.add(pack.id)
       capture(S.record, `Opened ${pack.label}`)
       renderRecord()
     }
-  })
+  }
 }
-const openedPacks = new Set()
+
+/* The drawer: the assignment beside the work, put away in one click. */
+function openDrawer() {
+  renderAssignment($('drawerBody'), { withActions: false })
+  $('drawer').classList.add('on')
+  $('drawerVeil').classList.add('on')
+}
+function closeDrawer() {
+  $('drawer').classList.remove('on')
+  $('drawerVeil').classList.remove('on')
+}
+$('drawerClose').addEventListener('click', closeDrawer)
+$('drawerVeil').addEventListener('click', closeDrawer)
+
+/* Before the work: the assignment is the whole page, and the choice of how
+   to begin is the only action on it. */
+function renderBegin() {
+  const c = $('doccol')
+  c.innerHTML = ''
+  const wrap = el('div', 'doc beginwrap')
+  wrap.innerHTML = `<h1>Launch concept. ${PRODUCT.name}.</h1>
+    <div class="docmeta">Read the assignment, then choose how to begin.</div>
+    <div class="assignment"></div>`
+  c.appendChild(wrap)
+  renderAssignment(wrap.querySelector('.assignment'), { withActions: true })
+  $('sideSub').textContent = 'Nothing is recorded while you read. The record starts with the work.'
+}
+
+function beginWork(mode) {
+  S.started = mode
+  capture(S.record, mode === 'foundations' ? 'Began from drafted foundations' : 'Began from a blank page')
+  renderRecord()
+  $('sideSub').textContent = 'Fills in as you work. Nothing else is collected.'
+  renderCanvas()
+}
+
+/* The canvas: the primary surface, labeled as what it is. */
+function renderCanvas() {
+  const c = $('doccol')
+  c.innerHTML = ''
+
+  const bar = el('div', 'canvasbar')
+  bar.innerHTML = `<span class="ovl">Draft canvas</span>
+    <span class="canvastitle">Launch concept. ${PRODUCT.name}.</span>
+    <span class="grow"></span>
+    <button class="ghostbtn" id="btnAssignment">assignment</button>`
+  c.appendChild(bar)
+  bar.querySelector('#btnAssignment').addEventListener('click', openDrawer)
+
+  const doc = el('div', 'doc')
+  const foundations = S.started === 'foundations'
+  doc.innerHTML = `<div class="docmeta">${foundations
+    ? 'Foundations drafted for you. Edit anything, and keep only what you would defend.'
+    : 'Your page. The three decisions from the brief are scaffolded below.'}</div>
+    <div class="howto">Select any passage to update it, ask about it, tag it for research, or picture it. Your record fills in on the right as you work. The assignment stays one click away, top right.</div>`
+
+  for (const b of DRAFT) {
+    if (!foundations && b.id === 'first-year') continue
+    const block = el('div', 'block')
+    block.dataset.block = b.id
+    const ph = {
+      audience: 'Who is Kado’s customer? Make the call, and support it from the pack.',
+      position: 'What should the brand stand for? One clear position.',
+      channel: 'Where do the next two corners go? Name the cost of your choice.',
+    }[b.id] || 'Write here.'
+    block.innerHTML = `<button class="gutter-add" title="Add below">+</button>
+      <span class="ovl"><span class="tag">${b.tag ? esc(b.tag) + ' · ' : ''}</span>${b.heading}</span>
+      <p class="body" contenteditable="true" spellcheck="false" data-block="${b.id}" data-ph="${esc(ph)}">${foundations ? esc(b.body) : ''}</p>`
+    doc.appendChild(block)
+  }
+  c.appendChild(doc)
+}
 
 /* Typing alone stays dark. Typing after opening the evidence that contradicts
    the passage is Reasoning, and the record can tell the two apart. */
@@ -271,9 +336,12 @@ document.addEventListener('focusout', e => {
   const p = asEl(e.target)?.closest('p.body')
   if (!p || !editSnapshot || editSnapshot.blockId !== p.dataset.block) return
   const changed = p.textContent.trim() !== editSnapshot.text.trim()
+  // A revision needs something to revise: first words on a blank section are
+  // writing, not a change of position, whatever was read beforehand.
+  const hadText = editSnapshot.text.trim().length > 0
   const id = p.dataset.block
   editSnapshot = null
-  if (!changed || revisedBlocks.has(id)) return
+  if (!changed || !hadText || revisedBlocks.has(id)) return
   if (evidenceOpened.has(id)) {
     revisedBlocks.add(id)
     record(STRUCTURAL.revisedAfterEvidence({ evidenceOpened: true }),
@@ -668,7 +736,7 @@ $('btnTrace').addEventListener('click', () => {
 })
 
 /* ---------- boot ---------- */
-renderDoc()
+renderBegin()
 renderSidebar()
 switchView(location.hash === '#teacher' ? 'teacher' : 'student')
 integrations()
