@@ -1,0 +1,317 @@
+:root{
+  --paper:#FAF9F5; --surface:#FFFFFF; --ink:#1A1915; --graphite:#6E6A61;
+  --faint:#A8A399; --hair:#E7E4DC; --signal:#C74E33; --wash:rgba(199,78,51,.09);
+  --good:#3F7A5E; --dim:#F2F0EA;
+  --serif:"Iowan Old Style","Palatino Nova",Palatino,Georgia,serif;
+  --sans:-apple-system,"SF Pro Text","Segoe UI",Inter,sans-serif;
+  --panel:320px; --margin-col:260px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:var(--paper); color:var(--ink); font-family:var(--sans);
+  font-size:15px; line-height:1.65; -webkit-font-smoothing:antialiased; overflow:hidden;
+}
+::selection{background:var(--wash)}
+button{font-family:inherit}
+
+/* ---------- chrome ---------- */
+header{
+  position:fixed; top:0; left:0; right:0; height:52px; z-index:40;
+  display:flex; align-items:center; justify-content:space-between; gap:20px;
+  padding:0 24px; background:var(--paper); border-bottom:1px solid var(--hair);
+}
+.wordmark{font-size:12px; letter-spacing:.38em; font-weight:500; flex:none}
+/* The seat plate. The persistent answer to "whose seat am I in". */
+.seat{display:flex; align-items:center; gap:10px; min-width:0}
+.seat .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+.seat.evaluator .dot{background:var(--ink)}
+.seat.learner .dot{background:var(--signal)}
+.seat.self .dot{background:var(--good)}
+.seat .who{font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--graphite); white-space:nowrap}
+.seat .name{font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink); font-weight:500; white-space:nowrap}
+.seat .place{font-size:11px; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.chrome-right{display:flex; align-items:center; gap:18px; flex:none}
+.integration{font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint)}
+.integration b{font-weight:500; color:var(--good)}
+.integration.off b{color:var(--faint)}
+.ghostbtn{font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--graphite);
+  background:none; border:none; cursor:pointer; padding:6px 2px; border-bottom:1px solid transparent}
+.ghostbtn:hover{color:var(--ink); border-bottom-color:var(--ink)}
+
+/* ---------- stage ---------- */
+main{position:fixed; top:52px; bottom:64px; left:0; right:0; display:flex; overflow:hidden}
+.stage{flex:1; display:flex; min-width:0; position:relative}
+.center{flex:1; min-width:0; overflow-y:auto; padding:40px 48px 60px}
+.center::-webkit-scrollbar{width:8px}
+.center::-webkit-scrollbar-thumb{background:var(--hair); border-radius:4px}
+.col{max-width:680px; margin:0 auto}
+
+/* ---------- explanation strip: the fix for "impossible to understand" ---------- */
+.strip{
+  position:fixed; left:0; right:0; bottom:0; height:64px; z-index:40;
+  display:flex; align-items:center; gap:22px; padding:0 24px;
+  background:var(--surface); border-top:1px solid var(--hair);
+}
+.strip .what{font-size:14px; color:var(--ink); font-weight:500}
+.strip .why{font-size:13.5px; color:var(--graphite); border-left:1px solid var(--hair); padding-left:22px}
+.strip .grow{flex:1}
+.strip .nav{display:flex; align-items:center; gap:10px; flex:none}
+.btn{
+  font-size:13px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--hair); border-radius:2px; padding:8px 16px; cursor:pointer; transition:.18s;
+}
+.btn:hover:not(:disabled){background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.btn.solid{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.btn:disabled{opacity:.35; cursor:default}
+.btn.small{padding:6px 12px; font-size:12px}
+
+/* ---------- typography ---------- */
+h1.display{font-family:var(--serif); font-size:34px; font-weight:500; line-height:1.22; letter-spacing:.01em}
+h2.display{font-family:var(--serif); font-size:24px; font-weight:500; line-height:1.3}
+.ovl{font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--graphite); font-weight:500; display:block}
+.ovl.f{color:var(--faint)}
+.lede{color:var(--graphite); font-size:15px}
+.card{background:var(--surface); border:1px solid var(--hair); border-radius:3px}
+
+/* ---------- evaluator stage ---------- */
+.brief-sheet{padding:34px 38px; margin-top:20px}
+.brief-sheet .from{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px; gap:16px}
+.brief-body{font-size:15.5px; white-space:pre-wrap}
+.field{margin-top:22px; padding-top:20px; border-top:1px solid var(--hair)}
+.field textarea{
+  width:100%; border:none; background:transparent; font-family:var(--sans); font-size:15px;
+  color:var(--ink); resize:none; outline:none; line-height:1.6; margin-top:8px; min-height:52px;
+}
+.field textarea::placeholder{color:var(--faint)}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.chip{
+  font-size:12px; color:var(--graphite); background:var(--surface); border:1px solid var(--hair);
+  border-radius:99px; padding:5px 13px; cursor:pointer; transition:.16s;
+}
+.chip:hover{border-color:var(--graphite)}
+.chip.on{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.factgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--hair); border:1px solid var(--hair); margin-top:18px}
+.factgrid div{background:var(--surface); padding:14px 16px}
+.factgrid .k{font-family:var(--serif); font-size:19px}
+.factgrid .v{font-size:12.5px; color:var(--graphite); margin-top:3px; line-height:1.5}
+
+/* ---------- the panel (evaluator view, narrowed) ---------- */
+.panel{
+  width:var(--panel); flex:none; border-right:1px solid var(--hair); background:var(--paper);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.panel-head{padding:16px 20px; border-bottom:1px solid var(--hair)}
+.panel-head .title{font-size:13px; font-weight:500; margin-top:3px}
+.panel-body{flex:1; overflow-y:auto; padding:4px 20px 24px}
+.panel-body::-webkit-scrollbar{width:6px}
+.panel-body::-webkit-scrollbar-thumb{background:var(--hair); border-radius:3px}
+.qblock{padding:16px 0; border-bottom:1px solid var(--hair)}
+.qblock:last-child{border-bottom:none}
+.qblock .q{font-size:11.5px; color:var(--graphite); line-height:1.45; margin-bottom:12px}
+.qblock .a{font-size:13.5px; line-height:1.55}
+.qblock.rest .a{display:none}
+.qblock.rest{padding:11px 0; opacity:.55}
+
+/* domain rows */
+.drow{display:flex; align-items:center; gap:10px; padding:7px 0; transition:.4s}
+.drow .nm{font-size:11.5px; letter-spacing:.05em; flex:1; color:var(--faint)}
+.drow.lit .nm{color:var(--ink)}
+.ladder{display:flex; gap:3px; flex:none}
+.ladder i{width:14px; height:3px; background:var(--hair); border-radius:1px; transition:.4s}
+.drow.lit .ladder i.on{background:var(--signal)}
+.drow .band{font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); width:78px; text-align:right; flex:none}
+.drow.lit .band{color:var(--graphite)}
+.drow.just{animation:bump 1.1s ease-out}
+@keyframes bump{0%{background:var(--wash)}100%{background:transparent}}
+
+.obs{border-left:2px solid var(--hair); padding:8px 0 8px 12px; margin-top:10px}
+.obs.new{border-left-color:var(--signal)}
+.obs .sig{font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--signal)}
+.obs .because{font-size:13px; color:var(--graphite); margin-top:3px; line-height:1.5}
+.obs .quote{font-size:12.5px; color:var(--ink); margin-top:6px; padding-left:10px; border-left:1px solid var(--hair); font-style:italic}
+.obs .meta{font-size:10.5px; color:var(--faint); margin-top:5px; display:flex; gap:10px; align-items:center}
+.obs .meta button{font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--graphite);
+  background:none; border:none; border-bottom:1px solid var(--hair); cursor:pointer; padding:1px 0}
+.obs .meta button:hover{color:var(--ink); border-bottom-color:var(--ink)}
+.obs.disputed{opacity:.7}
+.obs.disputed .because{text-decoration:line-through}
+.obs .dispute{font-size:12px; color:var(--signal); margin-top:6px}
+.captured{font-size:12px; color:var(--faint); padding:6px 0 6px 12px; border-left:2px solid var(--dim); margin-top:8px}
+
+/* ---------- document editor ---------- */
+.doc{padding:34px 40px 60px}
+.doc h1{font-family:var(--serif); font-size:27px; font-weight:500; margin-bottom:6px}
+.doc .docmeta{font-size:12px; color:var(--faint); margin-bottom:26px}
+.block{margin-top:26px; position:relative}
+.block .ovl{margin-bottom:7px}
+.block p{font-size:15.5px; line-height:1.7}
+.block p.body{outline:none}
+.block p.body:focus{background:rgba(0,0,0,.012)}
+.asked{border-bottom:1px solid var(--signal); background:var(--wash)}
+
+/* selection action pill */
+.pill{
+  position:fixed; z-index:60; display:flex; gap:2px; padding:4px;
+  background:var(--ink); border-radius:4px; box-shadow:0 6px 22px rgba(26,25,21,.22);
+  opacity:0; transform:translateY(4px); pointer-events:none; transition:opacity .12s, transform .12s;
+}
+.pill.on{opacity:1; transform:none; pointer-events:auto}
+.pill button{
+  font-size:12px; color:var(--paper); background:none; border:none; cursor:pointer;
+  padding:6px 11px; border-radius:2px; white-space:nowrap;
+}
+.pill button:hover{background:rgba(255,255,255,.14)}
+.pill .sep{width:1px; background:rgba(255,255,255,.18); margin:5px 2px}
+
+/* parallel block: a suggestion never silently replaces a person's words */
+.parallel{margin-top:12px; border:1px solid var(--hair); border-left:2px solid var(--signal); background:var(--surface); border-radius:3px; padding:14px 16px}
+.parallel .ovl{margin-bottom:6px}
+.parallel .text{font-size:15px; line-height:1.65}
+.parallel .acts{display:flex; gap:8px; margin-top:12px; align-items:center}
+.parallel .whyrow{margin-top:10px; display:none}
+.parallel .whyrow.on{display:block}
+.parallel input.why{width:100%; border:none; border-bottom:1px solid var(--hair); background:transparent;
+  font-family:var(--sans); font-size:13.5px; padding:6px 2px; outline:none; color:var(--ink)}
+.parallel input.why::placeholder{color:var(--faint)}
+
+/* margin column: questions, tags, sources */
+.margincol{width:var(--margin-col); flex:none; border-left:1px solid var(--hair); overflow-y:auto; padding:34px 20px 60px; background:var(--paper)}
+.margincol::-webkit-scrollbar{width:6px}
+.margincol::-webkit-scrollbar-thumb{background:var(--hair); border-radius:3px}
+.note{border-left:2px solid var(--hair); padding:2px 0 2px 12px; margin-bottom:20px}
+.note.q{border-left-color:var(--signal)}
+.note .ovl{margin-bottom:5px}
+.note .qtext{font-size:13px; font-weight:500; line-height:1.45}
+.note .atext{font-size:13px; color:var(--graphite); margin-top:6px; line-height:1.55}
+.note .src{font-size:12.5px; color:var(--graphite); margin-top:6px; line-height:1.5}
+
+/* generated image */
+.figure{margin-top:14px; border:1px solid var(--hair); background:var(--surface); border-radius:3px; overflow:hidden}
+.figure img{display:block; width:100%}
+.figure .cap{padding:10px 14px; font-size:12px; color:var(--graphite); border-top:1px solid var(--hair)}
+.figure .holding{padding:26px 16px; text-align:center}
+.figure .holding .el{font-family:var(--serif); font-size:22px; color:var(--ink)}
+.figure .holding .pr{font-size:12.5px; color:var(--graphite); margin-top:8px; line-height:1.5}
+.figure .holding .st{font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--faint); margin-top:10px}
+
+/* thinking */
+.think{display:inline-flex; gap:4px; align-items:center; padding:4px 0}
+.think i{width:4px;height:4px;border-radius:50%;background:var(--faint);animation:th 1s ease-in-out infinite}
+.think i:nth-child(2){animation-delay:.15s}.think i:nth-child(3){animation-delay:.3s}
+@keyframes th{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* ---------- read back ---------- */
+.fourcol{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:26px}
+.fourcol .qc{background:var(--surface); border:1px solid var(--hair); border-radius:3px; padding:18px 18px 20px}
+.fourcol .qc .qq{font-size:12px; color:var(--graphite); line-height:1.45; min-height:52px; border-bottom:1px solid var(--hair); padding-bottom:12px}
+.fourcol .qc .aa{font-size:13.5px; line-height:1.55; margin-top:12px}
+.predict{display:flex; gap:14px; margin-top:26px; flex-wrap:wrap}
+.predict .pc{flex:1; min-width:220px; background:var(--surface); border:1px solid var(--hair); border-radius:3px; padding:16px 18px}
+.predict .pc .ovl{margin-bottom:9px}
+.predict .row2{display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13px}
+.predict .row2 .mark{width:16px; font-size:11px; color:var(--faint)}
+.predict .row2.hit .mark{color:var(--good)}
+.predict .row2.miss .mark{color:var(--signal)}
+
+/* ---------- aggregate ---------- */
+.cohort{margin-top:22px; border:1px solid var(--hair); background:var(--surface); border-radius:3px; overflow:hidden}
+.cohort table{width:100%; border-collapse:collapse; font-size:12.5px}
+.cohort th{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--graphite); font-weight:500;
+  text-align:left; padding:11px 12px; border-bottom:1px solid var(--hair); white-space:nowrap}
+.cohort td{padding:10px 12px; border-bottom:1px solid var(--hair)}
+.cohort tr:last-child td{border-bottom:none}
+.cohort .m{width:22px; height:4px; border-radius:1px; background:var(--hair); display:inline-block}
+.cohort .m.b1{background:#E2C4B9}.cohort .m.b2{background:#D89076}.cohort .m.b3{background:var(--signal)}
+.cohort .who{font-weight:500; white-space:nowrap}
+
+/* ---------- modal ---------- */
+.veil{position:fixed; inset:0; background:rgba(26,25,21,.34); z-index:80; display:none; align-items:center; justify-content:center; padding:40px}
+.veil.on{display:flex}
+.modal{background:var(--surface); border:1px solid var(--hair); border-radius:3px; max-width:560px; width:100%; padding:34px 38px; max-height:80vh; overflow-y:auto}
+.modal h3{font-family:var(--serif); font-size:21px; font-weight:500; margin-bottom:12px}
+.modal p{font-size:14px; color:var(--graphite); margin-bottom:11px; line-height:1.6}
+.modal ul{margin:0 0 12px 18px}
+.modal li{font-size:14px; color:var(--graphite); margin-bottom:7px; line-height:1.55}
+
+/* ---------- transitions ---------- */
+.fade{animation:fade .45s ease both}
+@keyframes fade{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+.hide{display:none!important}
+
+/* cold open + questions */
+.centerpiece{display:flex; align-items:center; justify-content:center; height:100%; text-align:center; padding:0 40px}
+.centerpiece .inner{max-width:760px}
+.qline{font-family:var(--serif); font-size:26px; line-height:1.45; color:var(--faint); transition:color .6s; margin:14px 0}
+.qline.on{color:var(--ink)}
+.claimbad{font-family:var(--serif); font-size:23px; line-height:1.5; padding:20px 24px; background:var(--surface); border:1px solid var(--hair); border-left:2px solid var(--signal); border-radius:3px; text-align:left}
+.against{display:flex; gap:16px; margin-top:18px; text-align:left}
+.against div{flex:1; background:var(--surface); border:1px solid var(--hair); border-radius:3px; padding:14px 16px}
+.against .k{font-family:var(--serif); font-size:20px}
+.against .v{font-size:12.5px; color:var(--graphite); margin-top:4px; line-height:1.5}
+
+/* The stage is designed at a fixed size and scaled to fit the display, so an
+   unfamiliar projector or a mirrored laptop cannot break the layout. */
+#app{ width:1440px; height:900px; transform-origin:top left; position:relative; overflow:hidden }
+body{ overflow:hidden }
+
+/* ---------- block insertion ----------
+   A quiet plus in the gutter, the way a page invites a next thing without
+   shouting about it. Nothing appears until the pointer is near the block. */
+.block{position:relative}
+.gutter-add{
+  position:absolute; left:-30px; top:2px; width:22px; height:22px; border-radius:3px;
+  border:1px solid var(--hair); background:var(--surface); color:var(--graphite);
+  font-size:14px; line-height:1; cursor:pointer; opacity:0; transition:opacity .14s, color .14s, border-color .14s;
+  display:flex; align-items:center; justify-content:center;
+}
+.block:hover .gutter-add, .gutter-add:focus{opacity:1}
+.gutter-add:hover{color:var(--ink); border-color:var(--ink)}
+
+.insert-menu{
+  position:fixed; z-index:70; width:322px; padding:6px;
+  background:var(--surface); border:1px solid var(--hair); border-radius:4px;
+  box-shadow:0 10px 34px rgba(26,25,21,.16);
+  opacity:0; transform:translateY(-4px); pointer-events:none; transition:opacity .12s, transform .12s;
+}
+.insert-menu.on{opacity:1; transform:none; pointer-events:auto}
+.insert-menu .grp{font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
+  padding:10px 10px 5px; font-weight:500}
+.insert-menu button{
+  display:flex; align-items:baseline; gap:9px; width:100%; text-align:left;
+  background:none; border:none; cursor:pointer; padding:7px 10px; border-radius:3px;
+  font-family:var(--sans); color:var(--ink); transition:background .12s;
+}
+.insert-menu button:hover:not(:disabled){background:var(--paper)}
+.insert-menu button:disabled{cursor:default}
+.insert-menu .nm{font-size:13.5px; flex:none; min-width:82px}
+.insert-menu .ds{font-size:12px; color:var(--faint); flex:1; line-height:1.4}
+.insert-menu .soon{font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint);
+  border:1px solid var(--hair); border-radius:99px; padding:2px 7px; flex:none}
+.insert-menu button:disabled .nm{color:var(--graphite)}
+
+/* ---------- image actions ----------
+   An image is never finished on the first pass, so the ways to move it
+   forward sit with it rather than in a menu somewhere else. */
+.imgbar{display:flex; align-items:center; gap:2px; padding:8px 12px; border-top:1px solid var(--hair); flex-wrap:wrap}
+.imgbar button{
+  font-family:var(--sans); font-size:12px; color:var(--graphite); background:none;
+  border:none; cursor:pointer; padding:5px 9px; border-radius:3px; transition:.12s;
+}
+.imgbar button:hover:not(:disabled){background:var(--paper); color:var(--ink)}
+.imgbar button:disabled{color:var(--faint); cursor:default}
+.imgbar .spacer{flex:1}
+.imgbar .state{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+.imgbar .soon{font-size:9.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--faint);
+  border:1px solid var(--hair); border-radius:99px; padding:1px 6px; margin-left:5px}
+
+/* a newly inserted block announces itself once, quietly */
+.block.fresh{animation:freshen 1.4s ease-out}
+@keyframes freshen{0%{background:var(--wash)}100%{background:transparent}}
+.decision-block{border-left:2px solid var(--signal); padding-left:14px}
+.decision-block input{
+  width:100%; border:none; border-bottom:1px solid var(--hair); background:transparent;
+  font-family:var(--sans); font-size:14.5px; padding:6px 2px; outline:none; color:var(--ink); margin-top:6px;
+}
+.decision-block input::placeholder{color:var(--faint)}
+.decision-block .lbl{font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--graphite); margin-top:12px; display:block}

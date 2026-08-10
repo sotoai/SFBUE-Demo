@@ -1,21 +1,31 @@
-# Evolv, an enterprise walkthrough
+# Evolv Platform demo
 
-A playable demo of a work surface that reads capability from real work, invisibly, while the person just does the job.
+Capability read from real work, shown in a university seat and an enterprise seat, with the same engine underneath.
 
 **Open it:** https://sotoai.github.io/SFBUE-Demo/
 
-You are the professional. A brief arrives, you interrogate it, you work a go-to-market plan for a fictional company, you catch a confident claim that does not hold, and you make a pricing call under real uncertainty. A narration rail on the right names what the system is reading as you go. At the end you get a mirror, not a verdict.
+You watch a professor set a real brief, then take the student's seat and do the work: interrogate the brief, select any passage to rewrite it, ask about it, tag it for research, or generate a concept image inside the document. A panel on the left, which is the faculty view narrowed, fills in as you work. It answers four questions: what value the person contributed, what capabilities created it, how we know, and what an organisation does with that at scale.
 
-Runs from the link with no setup. Desktop first. About ten minutes.
+Nothing is submitted. Nothing is reviewed. The reading comes from the work.
 
-## Two ways it answers
+## What is live on this page
 
-**Cold, the default.** No setup. Conversational moments are answered from a staged bank that routes on what you actually type and never repeats itself.
+This is a static site, so there is no server behind it and no keys in the page. Everything structural is real and runs in your browser:
 
-**Live.** Click `live` in the top right and paste an Anthropic API key. Conversations then run on a live model held in character by a fenced prompt. Your key is stored in your own browser only, and calls go directly from your browser to Anthropic. Nothing is sent anywhere else, and there is no server in between.
+- The document editor, selection, and all four passage actions
+- The evidence engine, which is deterministic, so signals and confidence bands are genuinely computed from what you do
+- Branches that matter: the rewrite you refuse, the decision you commit, the record you dispute
+- The insights panel and the read back, computed from your session rather than scripted
 
-If a live call fails for any reason, the staged bank answers instead, so the demo never stalls.
+Two things are prepared rather than live here, and the interface says so in the top right:
+
+- **Language.** Answers and rewrites come from written fallbacks instead of a live model.
+- **Images.** The concept visuals were generated ahead of time with Magnific and are served from `images/`. Editing and upscaling an image need the API and are inactive.
+
+## Running it with everything live
+
+The full project, including the server that holds the keys and proxies Anthropic and Magnific, lives outside this repository. With it running you get live conversation in the editor, live image generation, text-guided image editing, and upscaling. Keys sit in a `.env` file on the machine and never reach the browser, which matters because the image key is billed to its owner.
 
 ## Notes
 
-Everything is one self-contained file, `index.html`. No build step, no dependencies, no tracking. The company, the numbers, and the pilot data in the scenario are invented.
+The company, the product, the pilot data, and the people are invented. The capability framework and the four questions come from the SFBUE strategy.
