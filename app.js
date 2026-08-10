@@ -5,10 +5,11 @@
    sets the brief and reads the same record from the other seat. There is no
    walkthrough here: the state is live, and both views read it. */
 
-import { DOMAINS, WORLDS, PRODUCT, DRAFT, EVIDENCE_PACK, IMAGE_MOMENTS, BLOCK_TYPES, IMAGE_ACTIONS } from './js/scenario.js'
+import { DOMAINS, WORLDS, PRODUCT, DRAFT, EVIDENCE_PACK, IMAGE_MOMENTS, BLOCK_TYPES, IMAGE_ACTIONS, STAKEHOLDERS } from './js/scenario.js'
 import { createRecord, bandFor, domainCounts, STRUCTURAL, observe, capture, dispute, relativeTime, GUARDRAILS } from './js/engine.js'
 import { deriveInsights } from './js/insights.js'
 import { radarSVG, timelineSVG, compositionHTML, RADAR_CAPTION } from './js/charts.js'
+import { buildGraph, graphSVG, nodeDetail } from './js/graph.js'
 import * as API from './js/api.js'
 
 const $ = id => document.getElementById(id)
@@ -44,6 +45,12 @@ function touchBlock(blockId, how) {
 /* Challenges pressed in research threads, for the insight that reads them. */
 let threadChallenges = 0
 const challengeTexts = []
+
+/* Sections whose text has been revised, and whether the coherence reading and
+   each section's stakeholder framing have already been credited. */
+const editedSections = new Set()
+const framedBlocks = new Set()
+let systemsCredited = false
 
 function integrations() {
   $('intLang').className = 'integration' + (API.state.language ? '' : ' off')
@@ -116,14 +123,66 @@ function observationCard(o, { disputable }) {
 }
 
 /* Section states for the composition bar, from provenance and evidence. */
+function sectionState(id, p) {
+  const worked = p.touched.has('revised') || p.touched.has('updated')
+  const engaged = p.touched.size > 0 || evidenceOpened.has(id)
+  return p.origin === 'blank'
+    ? (worked ? 'reworked' : engaged ? 'checked' : 'unwritten')
+    : (worked ? 'reworked' : engaged ? 'checked' : 'untested')
+}
 function artifactSections() {
-  return [...PROV.entries()].map(([id, p]) => {
-    const worked = p.touched.has('revised') || p.touched.has('updated')
-    const engaged = p.touched.size > 0 || evidenceOpened.has(id)
-    const state = p.origin === 'blank'
-      ? (worked ? 'reworked' : engaged ? 'checked' : 'unwritten')
-      : (worked ? 'reworked' : engaged ? 'checked' : 'untested')
-    return { heading: p.heading, state, origin: p.origin }
+  return [...PROV.entries()].map(([id, p]) => ({ heading: p.heading, state: sectionState(id, p), origin: p.origin }))
+}
+
+/* ---------- the knowledge graph ----------
+   One builder, two projections. The teacher sees the portion that informs
+   what to do next; the person sees the whole of themselves, in a surface
+   with room to read it. */
+
+let graphFocus = null
+
+function currentGraph() {
+  const prov = new Map()
+  for (const [id, p] of PROV.entries()) {
+    const node = document.querySelector(`p.body[data-block="${id}"]`)
+    prov.set(id, { heading: p.heading, state: sectionState(id, p), text: node ? node.textContent.trim() : '' })
+  }
+  return buildGraph({
+    record: S.record,
+    prov,
+    sources: EVIDENCE_PACK.filter(p => openedPacks.has(p.id)),
+    counts: domainCounts(S.record),
+  })
+}
+
+function renderGraphInto(host, { width }) {
+  const graph = currentGraph()
+  host.innerHTML = `<div class="graphstage">${graphSVG(graph, { width, focus: graphFocus })}</div>
+    <div class="graphdetail" id="${host.id}-detail"></div>`
+  const detail = host.querySelector('.graphdetail')
+
+  const paint = () => {
+    if (!graphFocus) {
+      detail.innerHTML = `<span class="ovl f">Select any node</span>
+        <div class="gd-body">Every node is something the platform holds, and every edge is a link it can defend. Follow an attribute back through the evidence to the passage and the source it came from.</div>`
+      return
+    }
+    const d = nodeDetail(graph, graphFocus)
+    if (!d) { detail.innerHTML = ''; return }
+    detail.innerHTML = `<span class="ovl f">${esc(d.kicker || '')}</span>
+      <div class="gd-title">${esc(d.title)}</div>
+      ${d.body ? `<div class="gd-body">${esc(d.body)}</div>` : ''}
+      ${d.quote ? `<div class="gd-quote">${esc(d.quote)}</div>` : ''}
+      ${d.note ? `<div class="gd-note">${esc(d.note)}</div>` : ''}
+      ${d.grows ? `<div class="gd-grows"><span class="ovl f">What grows it</span>${esc(d.grows)}</div>` : ''}
+      ${d.relations?.length ? `<div class="gd-rel"><span class="ovl f">Connected to</span>${d.relations.map(r => `<div>${esc(r)}</div>`).join('')}</div>` : ''}`
+  }
+  paint()
+
+  host.querySelector('svg').addEventListener('click', e => {
+    const g = asEl(e.target)?.closest('[data-node]')
+    graphFocus = g && g.dataset.node !== graphFocus ? g.dataset.node : null
+    renderGraphInto(host, { width })
   })
 }
 
@@ -231,6 +290,18 @@ function renderTeacher() {
     const comp = el('div', 'card teachchart')
     comp.innerHTML = `<span class="ovl">The artifact, section by section</span>` + compositionHTML(artifactSections())
     t.appendChild(comp)
+  }
+
+  if (PROV.size) {
+    const kg = el('div', 'card teachchart')
+    kg.id = 'teachGraph'
+    kg.innerHTML = `<span class="ovl">Her knowledge graph, the teaching view</span>
+      <div class="chartcap" style="text-align:left;margin:0 0 10px">What she read, what she made of it, what it evidenced, and where the profile is still empty. Select any node to follow the path.</div>`
+    const host = el('div', 'graphhost')
+    host.id = 'teachGraphHost'
+    kg.appendChild(host)
+    t.appendChild(kg)
+    renderGraphInto(host, { width: 640 })
   }
 
   if (S.record.observations.length || S.record.captured.length) {
@@ -356,7 +427,7 @@ function renderAssignment(container, { withActions }) {
     if (pack.id === 'log') evidenceOpened.add('channel')
     if (!openedPacks.has(pack.id)) {
       openedPacks.add(pack.id)
-      capture(S.record, `Opened ${pack.label}`)
+      capture(S.record, `Opened ${pack.label}`, { sourceId: pack.id })
       renderRecord()
     }
   }
@@ -477,10 +548,31 @@ document.addEventListener('focusout', e => {
   // A revision needs something to revise: first words on a blank section are
   // writing, not a change of position, whatever was read beforehand.
   const hadText = editSnapshot.text.trim().length > 0
+  const before = editSnapshot.text
   const id = p.dataset.block
   editSnapshot = null
   if (!changed) return
   touchBlock(id, 'revised')
+
+  // Naming the person who will push back, where they were not named before.
+  if (STAKEHOLDERS.test(p.textContent) && !STAKEHOLDERS.test(before) && !framedBlocks.has(id)) {
+    framedBlocks.add(id)
+    record(STRUCTURAL.addressedObjection({ named: true }),
+      { quote: p.textContent.trim().slice(0, 120), section: id })
+  }
+
+  // A document is a system. Revising a second section is the person keeping
+  // the whole coherent, which is what Systems reads.
+  if (hadText) {
+    const priorSections = editedSections.size
+    editedSections.add(id)
+    if (!systemsCredited && editedSections.size > priorSections && priorSections > 0) {
+      systemsCredited = true
+      record(STRUCTURAL.alignedAcrossSections({ priorSections }),
+        { quote: p.textContent.trim().slice(0, 120), section: id })
+    }
+  }
+
   renderRecord()
   if (!hadText || revisedBlocks.has(id)) return
   if (evidenceOpened.has(id)) {
@@ -645,7 +737,11 @@ async function doTag(info) {
   const thread = { passage: info.text, blockId: info.blockId, p: info.p, turns: [] }
 
   touchBlock(info.blockId, 'researched')
-  capture(S.record, 'Tagged a passage for research')
+  // Flagging a claim is not reading. It is noticing that something load
+  // bearing has not been established, which is what Perception reads.
+  const noticed = record(STRUCTURAL.taggedUncertainty({ passage: info.text }),
+    { quote: info.text.slice(0, 120), section: info.blockId })
+  if (!noticed) capture(S.record, 'Tagged a passage that carries no claim', { sectionId: info.blockId })
   renderRecord()
 
   const opening = addTurn(note, thread, 'research', null)
@@ -980,8 +1076,37 @@ async function insertBlock(type, after) {
   setTimeout(() => block.classList.remove('fresh'), 1500)
 }
 
+/* ---------- the person's own profile ----------
+   The deep view. The same graph, with room to read it, and every attribute
+   named with what it reads and what would grow it, evidenced or not. */
+function openProfile() {
+  const counts = domainCounts(S.record)
+  openModal(`
+    <span class="ovl f">Your profile</span>
+    <h3>Everything this has learned about how you work.</h3>
+    <p>Built only from what you did. Follow any attribute back through the evidence to the passage and the source it came from. Nothing here is inferred, and nothing about you is stored that you cannot read.</p>
+    <div class="graphhost" id="profileGraphHost"></div>
+    <div class="attgrid">
+      ${DOMAINS.map(d => {
+        const n = counts[d.id] || 0
+        return `<div class="att${n ? ' lit' : ''}">
+          <div class="attname">${d.name}<span class="attband">${n ? bandFor(n) : 'no evidence yet'}</span></div>
+          <div class="attreads">${d.reads}</div>
+          <div class="attgrows"><span class="ovl f">What grows it</span>${d.grows}</div>
+        </div>`
+      }).join('')}
+    </div>
+    <p class="attfoot">An attribute with no evidence is a description of work that has not happened yet. It is never read as a limit in you, and it never will be.</p>`, 'wide')
+  renderGraphInto($('profileGraphHost'), { width: 760 })
+}
+$('btnProfile').addEventListener('click', openProfile)
+
 /* ---------- modal ---------- */
-function openModal(html) { $('modal').innerHTML = html; $('veil').classList.add('on') }
+function openModal(html, size) {
+  $('modal').className = 'modal' + (size === 'wide' ? ' wide' : '')
+  $('modal').innerHTML = html
+  $('veil').classList.add('on')
+}
 $('veil').addEventListener('click', e => { if (e.target.id === 'veil') $('veil').classList.remove('on') })
 document.addEventListener('keydown', e => { if (e.key === 'Escape') $('veil').classList.remove('on') })
 

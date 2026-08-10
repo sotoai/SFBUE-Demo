@@ -5,6 +5,7 @@
   --serif:"Iowan Old Style","Palatino Nova",Palatino,Georgia,serif;
   --sans:-apple-system,"SF Pro Text","Segoe UI",Inter,sans-serif;
   --panel:320px; --margin-col:300px;
+  --b1:#E2C4B9; --b2:#D89076; --b3:#C74E33; --b4:#C74E33;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
@@ -373,6 +374,44 @@ p.body:empty::before{content:attr(data-ph); color:var(--faint); font-style:itali
 .compbar .fill{height:10px; border-radius:2px; border:1px solid rgba(26,25,21,.06)}
 .compbar .seghead{font-size:10.5px; font-weight:500; color:var(--ink); margin-top:7px; line-height:1.35}
 .compbar .segstate{font-size:10px; color:var(--faint); margin-top:1px}
+
+/* ---------- the knowledge graph ---------- */
+.graphhost{margin-top:6px}
+.graphstage{overflow-x:auto}
+.kgraph{display:block}
+.kgraph .gh{font-size:9px; letter-spacing:.13em; text-transform:uppercase; fill:var(--faint)}
+.kgraph .ge{stroke:var(--hair); stroke-width:1.2; transition:stroke .18s, opacity .18s}
+.kgraph .ge.lit{stroke:var(--signal); stroke-width:1.6}
+.kgraph .ge.dim{opacity:.28}
+.kgraph .gn{cursor:pointer; transition:opacity .18s}
+.kgraph .gn.dim{opacity:.3}
+.kgraph .gn:hover .gl, .kgraph .gn:focus .gl{fill:var(--ink)}
+.kgraph .gn:focus{outline:none}
+.kgraph .gl{font-size:10px; fill:var(--graphite); font-family:var(--sans)}
+.kgraph .gl.attribute{fill:var(--ink); font-size:10.5px}
+.kgraph .gl.capture{fill:var(--faint)}
+.kgraph .gcount{fill:var(--faint); font-size:9px}
+
+.graphdetail{margin-top:12px; padding-top:12px; border-top:1px solid var(--hair); min-height:76px}
+.gd-title{font-size:14px; font-weight:500; margin-top:3px}
+.gd-body{font-size:12.5px; color:var(--graphite); line-height:1.6; margin-top:5px}
+.gd-quote{font-size:12.5px; font-style:italic; color:var(--ink); margin-top:8px; padding-left:11px; border-left:1px solid var(--hair); line-height:1.5}
+.gd-note{font-size:12px; color:var(--signal); margin-top:7px}
+.gd-grows{font-size:12.5px; color:var(--ink); margin-top:10px; line-height:1.55}
+.gd-rel{margin-top:10px; font-size:11.5px; color:var(--faint); line-height:1.7}
+
+/* the person's own deep view */
+.modal.wide{max-width:860px}
+.side-headrow{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+.attgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:22px}
+.att{border:1px solid var(--hair); border-left:2px solid var(--hair); border-radius:3px; padding:12px 14px; background:var(--paper)}
+.att.lit{border-left-color:var(--signal); background:var(--surface)}
+.attname{font-size:13px; font-weight:500; display:flex; justify-content:space-between; align-items:baseline; gap:8px}
+.attband{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); font-weight:400}
+.att.lit .attband{color:var(--signal)}
+.attreads{font-size:12px; color:var(--graphite); margin-top:5px; line-height:1.5}
+.attgrows{font-size:12px; color:var(--ink); margin-top:9px; line-height:1.5}
+.attfoot{font-size:12px; color:var(--faint); margin-top:18px; line-height:1.6}
 .disputerow{margin-top:7px}
 .disputerow input{width:100%; border:none; border-bottom:1px solid var(--hair); background:transparent;
   font-family:var(--sans); font-size:12.5px; padding:5px 2px; outline:none; color:var(--ink)}
@@ -382,8 +421,8 @@ p.body:empty::before{content:attr(data-ph); color:var(--faint); font-style:itali
 .teachwrap{flex:1; min-width:0; overflow-y:auto; display:flex; gap:40px; padding:30px 44px 80px; align-items:flex-start; justify-content:center}
 .teachwrap::-webkit-scrollbar{width:8px}
 .teachwrap::-webkit-scrollbar-thumb{background:var(--hair); border-radius:4px}
-.teachleft{width:420px; flex:none; position:sticky; top:0}
-.teachright{flex:1; min-width:0; max-width:560px}
+.teachleft{width:380px; flex:none; position:sticky; top:0}
+.teachright{flex:1; min-width:0; max-width:700px}
 .teach-line{font-family:var(--serif); font-size:19px; line-height:1.45; margin-bottom:14px}
 .guard{padding:18px 22px; margin-top:22px}
 .guard ul{margin:10px 0 0 16px}

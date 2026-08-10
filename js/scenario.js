@@ -1,15 +1,28 @@
 /* All scenario content. One company, two seats.
    Editing this file changes the demo's world without touching the machinery. */
 
+/* The eight elemental attributes.
+
+   Each carries what it reads (the act the engine looks for) and what grows it
+   (the same thing said to the person, so an attribute with no evidence is a
+   description of what has not happened yet, never a deficit in them). */
 export const DOMAINS = [
-  { id: 'perception', name: 'Perception', signal: 'Inquire', reads: 'Noticing what is missing or unstated' },
-  { id: 'systems',    name: 'Systems',    signal: 'Discern', reads: 'Seeing how parts constrain each other' },
-  { id: 'reasoning',  name: 'Reasoning',  signal: 'Analyze', reads: 'Weighing evidence against a claim' },
-  { id: 'execution',  name: 'Execution',  signal: 'Check',   reads: 'Checking a claim against a source' },
-  { id: 'growth',     name: 'Growth',     signal: 'Correct', reads: 'Moving or holding a position, with the reason stated' },
-  { id: 'decision',   name: 'Decision',   signal: 'Decide',  reads: 'Committing with the cost named' },
-  { id: 'creation',   name: 'Creation',   signal: 'Compose', reads: 'Making something new that carries an argument' },
-  { id: 'human',      name: 'Human',      signal: 'Frame',   reads: 'Addressing what another person will resist' },
+  { id: 'perception', name: 'Perception', signal: 'Inquire', reads: 'Noticing what is missing or unstated',
+    grows: 'Flagging a claim that needs checking, before anyone asks you to.' },
+  { id: 'systems',    name: 'Systems',    signal: 'Discern', reads: 'Seeing how parts constrain each other',
+    grows: 'Changing a second passage to keep it consistent with the first.' },
+  { id: 'reasoning',  name: 'Reasoning',  signal: 'Analyze', reads: 'Weighing evidence against a claim',
+    grows: 'Rewriting a claim after opening the source that contradicts it.' },
+  { id: 'execution',  name: 'Execution',  signal: 'Check',   reads: 'Checking a claim against a source',
+    grows: 'Opening a source that disagrees with the passage you opened it from.' },
+  { id: 'growth',     name: 'Growth',     signal: 'Correct', reads: 'Moving or holding a position, with the reason stated',
+    grows: 'Keeping your own words against a rewrite, with your reason on the page.' },
+  { id: 'decision',   name: 'Decision',   signal: 'Decide',  reads: 'Committing with the cost named',
+    grows: 'Making a call and writing what it costs beside it.' },
+  { id: 'creation',   name: 'Creation',   signal: 'Compose', reads: 'Making something new that carries an argument',
+    grows: 'Briefing an image to carry a point the words cannot.' },
+  { id: 'perspective', name: 'Perspective', signal: 'Frame', reads: 'Writing toward what another person will resist',
+    grows: 'Naming the person who will push back, and writing toward their objection.' },
 ]
 
 export const BANDS = ['Noticed', 'Emerging', 'Supported', 'Well evidenced']
@@ -93,12 +106,18 @@ export const DRAFT = [
 ]
 
 /* What the evidence pack returns when someone actually looks. */
+/* Each source names the sections it bears on, so the graph can draw the link
+   between a document that was read and a passage it speaks to. */
 export const EVIDENCE_PACK = [
-  { id: 'log', label: 'Pilot session log, 1,200 sessions', body: '996 sessions were drivers who live within 3 miles of the corner. 36 began more than 40 miles from home, 3 percent of the pilot. Of the 200 regulars, 150 cannot plug in where they park at night.' },
-  { id: 'dwell', label: 'Charge and stay times, six months', body: 'A charge to 80 percent takes 25 minutes. The median stay is 31 minutes. People order in the first two minutes and leave when they are finished, not when the car is.' },
-  { id: 'survey', label: 'Route 92 interchange survey', body: 'The interchange parcel sees roughly forty times the passing traffic of Alder Street, at 3.1 times the rent. The dwell note from the fast chargers already on that corridor: drivers wait in their cars with the doors closed.' },
-  { id: 'note', label: 'Elena Voss, founder, January note', body: 'One page on the night she was stranded at 4 percent outside Gilroy, and why Kado exists so nobody has that night again. Her line about the alternative: the neighborhood is where chargers go to be ignored.' },
+  { id: 'log', label: 'Pilot session log, 1,200 sessions', bearsOn: ['audience', 'channel'], body: '996 sessions were drivers who live within 3 miles of the corner. 36 began more than 40 miles from home, 3 percent of the pilot. Of the 200 regulars, 150 cannot plug in where they park at night.' },
+  { id: 'dwell', label: 'Charge and stay times, six months', bearsOn: ['position'], body: 'A charge to 80 percent takes 25 minutes. The median stay is 31 minutes. People order in the first two minutes and leave when they are finished, not when the car is.' },
+  { id: 'survey', label: 'Route 92 interchange survey', bearsOn: ['channel'], body: 'The interchange parcel sees roughly forty times the passing traffic of Alder Street, at 3.1 times the rent. The dwell note from the fast chargers already on that corridor: drivers wait in their cars with the doors closed.' },
+  { id: 'note', label: 'Elena Voss, founder, January note', bearsOn: ['position', 'channel'], body: 'One page on the night she was stranded at 4 percent outside Gilroy, and why Kado exists so nobody has that night again. Her line about the alternative: the neighborhood is where chargers go to be ignored.' },
 ]
+
+/* People in this world who will push back. Naming one in the text, and
+   writing toward what they will resist, is what Perspective reads. */
+export const STAKEHOLDERS = /\bElena\b|\bVoss\b|\bthe founder\b/i
 
 /* Image moments in the document.
 
@@ -139,7 +158,7 @@ export const FOUR_QUESTIONS = [
    in her seat. Quotes are from Theo's own documents in this world. */
 export const SEEDED_THEO = [
   { signal: 'Decide', domainName: 'Decision', because: 'Committed to a position and named what it costs.', quote: 'Hold corner two until the Fruitvale lease clears. We eat a month of momentum and open with parking we control.', when: 'three weeks ago, seeded' },
-  { signal: 'Frame', domainName: 'Human', because: 'Wrote toward a named person’s stated objection rather than around it.', quote: 'Elena will read this as walking away from the road. It is not. It is choosing the corner we can win first.', when: 'two months ago, seeded' },
+  { signal: 'Frame', domainName: 'Perspective', because: 'Wrote toward a named person’s stated objection rather than around it.', quote: 'Elena will read this as walking away from the road. It is not. It is choosing the corner we can win first.', when: 'two months ago, seeded' },
 ]
 
 /* What a person can add to the document.

@@ -10,22 +10,20 @@
    - The composition bar is sequential worked-ness in one hue, each segment
      labeled with its state in text, never color alone. */
 
-const LIVE_AXES = [
-  { id: 'reasoning', name: 'Reasoning' },
-  { id: 'execution', name: 'Execution' },
-  { id: 'decision',  name: 'Decision' },
-  { id: 'creation',  name: 'Creation' },
-  { id: 'growth',    name: 'Growth' },
-]
+import { DOMAINS } from './scenario.js'
+
+/* All eight elemental attributes, every one with a reader in the engine. */
+const LIVE_AXES = DOMAINS.map(d => ({ id: d.id, name: d.name }))
 const BAND_STEPS = ['', 'Noticed', 'Emerging', 'Supported', 'Well evidenced']
+const STEP = 360 / LIVE_AXES.length
 
 const bandStep = c => (c <= 0 ? 0 : c === 1 ? 1 : c === 2 ? 2 : c <= 4 ? 3 : 4)
 
 /* ---------- the radar: the record's shape at a glance ---------- */
 export function radarSVG(counts, { size = 200, ringLabels = false } = {}) {
   const cx = size / 2, cy = size / 2
-  const R = size / 2 - (ringLabels ? 34 : 26)
-  const angle = i => (-90 + i * 72) * Math.PI / 180
+  const R = size / 2 - (ringLabels ? 44 : 40)
+  const angle = i => (-90 + i * STEP) * Math.PI / 180
   const pt = (i, f) => [cx + Math.cos(angle(i)) * R * f, cy + Math.sin(angle(i)) * R * f]
   const poly = f => LIVE_AXES.map((_, i) => pt(i, f).map(v => v.toFixed(1)).join(',')).join(' ')
 
@@ -45,11 +43,11 @@ export function radarSVG(counts, { size = 200, ringLabels = false } = {}) {
   }).join('')
 
   const labels = LIVE_AXES.map((a, i) => {
-    const [x, y] = pt(i, 1.16)
+    const [x, y] = pt(i, 1.2)
     const anchor = Math.abs(x - cx) < 8 ? 'middle' : x > cx ? 'start' : 'end'
     const step = steps[i]
     return `<text x="${x.toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="${anchor}"
-      font-size="9.5" letter-spacing=".08em" fill="${step ? 'var(--ink)' : 'var(--faint)'}"
+      font-size="8.5" letter-spacing=".07em" fill="${step ? 'var(--ink)' : 'var(--faint)'}"
       style="text-transform:uppercase">${a.name}</text>`
   }).join('')
 
@@ -65,7 +63,7 @@ export function radarSVG(counts, { size = 200, ringLabels = false } = {}) {
   </svg>`
 }
 
-export const RADAR_CAPTION = 'Perception, Systems, and Human have no reader in this version, so they are not drawn.'
+export const RADAR_CAPTION = 'All eight elemental attributes, at the confidence the evidence supports. Empty axes describe work not yet done.'
 
 /* ---------- the session timeline: when each reading landed ---------- */
 export function timelineSVG(record, now = Date.now()) {

@@ -78,7 +78,20 @@ export const STRUCTURAL = {
 
   /* Naming a person who will resist, and writing toward their objection. */
   addressedObjection: ({ named }) => named
-    ? { signal: 'Frame', domainId: 'human', because: 'Wrote toward a named person\'s stated objection rather than around it.' }
+    ? { signal: 'Frame', domainId: 'perspective', because: 'Named the person who will push back, and wrote toward their objection.' }
+    : null,
+
+  /* Flagging a claim for checking is not reading. It is noticing that
+     something load bearing has not been established. Guarded so that tagging
+     any stray phrase does not count: the passage has to carry a claim. */
+  taggedUncertainty: ({ passage }) => /\d|\bevery\b|\ball\b|\bnever\b|\balways\b|\bmost\b|\bonly\b/i.test(String(passage || ''))
+    ? { signal: 'Inquire', domainId: 'perception', because: 'Flagged a claim carrying a number or an absolute, before anyone asked.' }
+    : null,
+
+  /* A document is a system: change one part and others stop fitting. Revising
+     a second section after a first is the person keeping the whole coherent. */
+  alignedAcrossSections: ({ priorSections }) => priorSections > 0
+    ? { signal: 'Discern', domainId: 'systems', because: 'Revised a second passage to keep it consistent with the first.' }
     : null,
 }
 
@@ -123,8 +136,8 @@ export function observe(record, hit, context = {}) {
 
 /* Captured, but deliberately not read as capability. The contrast is the point:
    a reading that can never come back empty is not a reading. */
-export function capture(record, what) {
-  const entry = { id: `cap-${record.captured.length + 1}`, what, at: Date.now() }
+export function capture(record, what, link = null) {
+  const entry = { id: `cap-${record.captured.length + 1}`, what, link, at: Date.now() }
   record.captured.push(entry)
   return entry
 }
