@@ -432,7 +432,7 @@ async function doAsk(info, q) {
   const fallback = 'The log is direct about it. Of 1,200 pilot sessions, 996 came from drivers who live within 3 miles of the corner. 36 began more than 40 miles from home, 3 percent of the pilot. The regulars are neighbors: 150 of 200 cannot plug in where they park at night.'
   const ans = await API.askAbout(info.text, q, fallback)
   note.querySelector('.atext').textContent = ans
-  const contradicts = /996|1,?200|3 miles|3 percent|150|regular|neighbor/i.test(ans)
+  const contradicts = CONTRADICTS.test(ans)
   record(STRUCTURAL.openedContradictingSource({ contradicts }),
     { quote: info.text.slice(0, 120), section: info.blockId })
   if (contradicts) evidenceOpened.add(info.blockId)
@@ -482,7 +482,12 @@ async function doUpdate(info) {
     record(STRUCTURAL.refusedRewrite({ reason }), { quote: reason, section: info.blockId })
   }
   par.querySelector('.why').addEventListener('keydown', ev => { if (ev.key === 'Enter') commitWhy() })
-  par.querySelector('.why').addEventListener('blur', commitWhy)
+  // Blur commits the reason, except when focus is moving to a button inside
+  // this proposal: clicking Use this must never be recorded as a refusal.
+  par.querySelector('.why').addEventListener('blur', ev => {
+    if (par.contains(ev.relatedTarget)) return
+    commitWhy()
+  })
 }
 
 /* ---------- research threads ----------
@@ -537,10 +542,13 @@ async function doTag(info) {
     if (!q) return
     input.value = ''
     S.busy = true
+    // Transcript is taken before the new question joins it, so the question
+    // reaches the model once, as the next message, not twice.
+    const transcript = threadTranscript(thread.turns)
     addTurn(note, thread, 'you', q)
     const holding = addTurn(note, thread, 'research', null)
     const replyFallback = 'The pack only goes so far here. What it does hold: 996 of 1,200 sessions came from within 3 miles, and 150 of 200 regulars cannot plug in where they park. Anything past that would need a source Kado does not have yet.'
-    const ans = await API.researchReply(thread.passage, threadTranscript(thread.turns), q, replyFallback)
+    const ans = await API.researchReply(thread.passage, transcript, q, replyFallback)
     holding.remove()
     addTurn(note, thread, 'research', ans)
     if (CONTRADICTS.test(ans)) evidenceOpened.add(thread.blockId)
@@ -551,6 +559,11 @@ async function doTag(info) {
     if (S.busy) return
     const state = note.querySelector('.tstate')
     if (!thread.turns.length) return
+    // Never spend a model call on a proposal that cannot be shown.
+    if (thread.p.closest('.block').querySelector('.parallel')) {
+      state.textContent = 'resolve the open suggestion on this passage first'
+      return
+    }
     S.busy = true
     state.textContent = 'writing the revision'
     const current = thread.p.textContent.trim()
@@ -594,7 +607,12 @@ function proposeRevision(p, blockId, text, label) {
     record(STRUCTURAL.refusedRewrite({ reason }), { quote: reason, section: blockId })
   }
   par.querySelector('.why').addEventListener('keydown', ev => { if (ev.key === 'Enter') commitWhy() })
-  par.querySelector('.why').addEventListener('blur', commitWhy)
+  // Blur commits the reason, except when focus is moving to a button inside
+  // this proposal: clicking Use this must never be recorded as a refusal.
+  par.querySelector('.why').addEventListener('blur', ev => {
+    if (par.contains(ev.relatedTarget)) return
+    commitWhy()
+  })
 }
 
 /* ---------- images, briefed in the document rather than an OS dialog ---------- */
