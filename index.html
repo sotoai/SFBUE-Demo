@@ -1,0 +1,1250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evolv</title>
+<style>
+  :root{
+    --paper:#FAF9F5; --surface:#FFFFFF; --ink:#1A1915; --graphite:#6E6A61;
+    --faint:#A8A399; --hair:#E7E4DC; --signal:#C74E33; --wash:rgba(199,78,51,.08);
+    --serif:"Iowan Old Style","Palatino Nova",Palatino,Georgia,serif;
+    --sans:-apple-system,"SF Pro Text","Segoe UI",Inter,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--sans);
+    font-size:15px; line-height:1.7; -webkit-font-smoothing:antialiased;
+    user-select:none; cursor:default; overflow:hidden;
+  }
+  input,[contenteditable]{user-select:text}
+
+  /* ---------- chrome ---------- */
+  header{
+    position:fixed; top:0; left:0; right:0; height:56px; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 32px; background:var(--paper); border-bottom:1px solid var(--hair);
+  }
+  .wordmark{font-size:13px; letter-spacing:.38em; color:var(--ink); font-weight:500}
+  .hright{display:flex; align-items:center; gap:24px}
+  .livec{
+    font-family:var(--sans); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--faint); background:none; border:none; cursor:pointer; padding:6px 2px;
+  }
+  .livec.on{color:var(--signal)}
+  .dots{display:flex; gap:9px}
+  .dots i{width:5px;height:5px;border-radius:50%;background:var(--hair);transition:background .3s}
+  .dots i.past{background:var(--faint)}
+  .dots i.now{background:var(--ink)}
+
+  main{position:fixed; top:56px; bottom:0; left:0; right:0; display:flex}
+  #surface{flex:1; position:relative; min-width:0}
+  .beat{
+    position:absolute; inset:0; overflow-y:auto; overflow-x:hidden;
+    opacity:0; pointer-events:none; transition:opacity .3s ease;
+    padding:56px 64px 96px;
+  }
+  .beat.on{opacity:1; pointer-events:auto}
+  .beat::-webkit-scrollbar{width:0}
+  .col{max-width:720px; margin:0 auto}
+
+  /* ---------- rail ---------- */
+  #rail{
+    width:clamp(280px,26vw,360px); border-left:1px solid var(--hair);
+    display:flex; flex-direction:column; padding:72px 36px 40px; background:var(--paper);
+  }
+  #voice{transition:opacity 1.2s ease}
+  #say{
+    font-size:14px; color:var(--graphite); line-height:1.75; min-height:75px;
+    opacity:0; transform:translateY(4px); transition:opacity .35s ease, transform .35s ease;
+  }
+  #say.in{opacity:1; transform:none}
+  #chipzone{margin-top:22px; min-height:30px}
+  .chip{
+    display:inline-block; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--signal); background:var(--wash); border:1px solid transparent;
+    padding:5px 12px; border-radius:99px;
+    opacity:0; transform:translateY(4px); transition:opacity .3s, transform .3s;
+  }
+  .chip.in{opacity:1; transform:none; animation:pulse 1.1s ease-out 1}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(199,78,51,.30)}100%{box-shadow:0 0 0 14px rgba(199,78,51,0)}}
+  .ledger{
+    font-size:11.5px; letter-spacing:.04em; color:var(--faint);
+    border-left:2px solid var(--hair); padding-left:10px;
+    opacity:0; transition:opacity .4s;
+  }
+  .ledger.in{opacity:1}
+  #domains{margin-top:auto; padding-top:28px; border-top:1px solid var(--hair)}
+  #domains .ovl{margin-bottom:14px}
+  .dom{
+    display:flex; align-items:baseline; justify-content:space-between;
+    font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--faint); padding:7px 0; transition:color .6s;
+  }
+  .dom.lit{color:var(--signal)}
+  .dom .ct{font-size:10px; letter-spacing:.2em}
+
+  /* ---------- shared ---------- */
+  .ovl{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--graphite); font-weight:500}
+  .ovl.f{color:var(--faint)}
+  .r{opacity:0; transform:translateY(5px); transition:opacity .28s ease, transform .28s ease}
+  .h{display:none!important}
+  .r.in{opacity:1; transform:none}
+  .card{background:var(--surface); border:1px solid var(--hair); border-radius:3px}
+  .btn{
+    font-family:var(--sans); font-size:13px; letter-spacing:.02em; color:var(--ink);
+    background:var(--surface); border:1px solid var(--hair); border-radius:2px;
+    padding:10px 20px; cursor:pointer; transition:background .2s,color .2s,border-color .2s;
+  }
+  .btn:hover,.btn.hov{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+  .btn.solid{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+  .btn.solid:hover{background:#000}
+  .caret{
+    display:inline-block; width:1px; height:1.1em; background:var(--ink);
+    vertical-align:-.18em; margin-left:1px; animation:blink 1.1s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:0}}
+  .hl{
+    background-image:linear-gradient(var(--wash),var(--wash));
+    background-repeat:no-repeat; background-size:0% 100%;
+    border-bottom:1px solid transparent; transition:background-size .5s ease, border-color .5s ease;
+  }
+  .hl.on{background-size:100% 100%; border-bottom-color:var(--signal)}
+  .flagline{
+    font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--signal);
+    margin-top:12px; padding-left:10px; border-left:2px solid var(--signal);
+  }
+  .ghost{
+    display:inline-block; font-size:12px; color:var(--faint);
+    border:1px solid var(--hair); border-radius:99px; padding:5px 14px; margin:0 8px 8px 0;
+  }
+  input.line{
+    width:100%; border:none; border-bottom:1px solid var(--hair); background:transparent;
+    font-family:var(--sans); font-size:14px; color:var(--ink); padding:8px 2px; outline:none;
+    transition:border-color .3s;
+  }
+  input.line:focus{border-bottom-color:var(--graphite)}
+  input.line::placeholder{color:var(--faint)}
+  input.line[readonly]{pointer-events:none}
+  .inrow{display:flex; align-items:center; gap:14px}
+  .sendbtn{
+    font-family:var(--sans); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--graphite); background:none; border:none; border-bottom:1px solid var(--hair);
+    padding:6px 2px; cursor:pointer;
+  }
+  .sendbtn:hover{color:var(--ink); border-bottom-color:var(--ink)}
+  .think{display:inline-flex; gap:5px; padding:6px 0}
+  .think i{width:4px;height:4px;border-radius:50%;background:var(--faint);animation:th 1s ease-in-out infinite}
+  .think i:nth-child(2){animation-delay:.15s}.think i:nth-child(3){animation-delay:.3s}
+  @keyframes th{0%,100%{opacity:.3}50%{opacity:1}}
+  .q{font-size:14px; color:var(--ink); font-weight:500; margin:14px 0 6px}
+  .resp{font-size:14px; color:var(--graphite)}
+  .resp p{margin-top:8px}
+
+  /* ---------- cover ---------- */
+  #cover{display:flex; align-items:center; justify-content:center; text-align:center}
+  #cover .wordbig{font-size:20px; letter-spacing:.55em; margin-left:.55em; font-weight:500}
+  #cover .rule{width:36px; height:1px; background:var(--hair); margin:36px auto}
+  #cover .line{font-family:var(--serif); font-size:22px}
+  #cover .sub{font-size:13px; color:var(--graphite); margin-top:14px}
+  #cover .cue{margin-top:52px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint)}
+
+  /* ---------- connect modal ---------- */
+  #veil{position:fixed; inset:0; background:rgba(26,25,21,.34); z-index:80; display:none; align-items:center; justify-content:center}
+  #veil.on{display:flex}
+  #panelC{width:400px; padding:40px 44px}
+  #panelC .ovl{display:block; margin-bottom:14px}
+  #panelC p{font-size:13.5px; color:var(--graphite); margin-bottom:20px}
+  #panelC .row{display:flex; gap:14px; margin-top:22px; align-items:center}
+  #keyStatus{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin-left:auto}
+
+  /* ---------- beat 0 ---------- */
+  #b0 .panel{padding:52px 56px; transition:opacity .5s, transform .5s}
+  #b0 .panel.fold{opacity:0; transform:translateY(-8px) scale(.985)}
+  #b0 .to{font-size:13px; color:var(--graphite); margin:26px 0 6px; padding-bottom:10px; border-bottom:1px solid var(--hair)}
+  #b0 .field{min-height:110px; padding:16px 0; font-size:15px}
+  #b0 label{display:block; margin-top:26px}
+  #b0 .succ{min-height:34px; padding:12px 0 16px; border-bottom:1px solid var(--hair); font-size:15px}
+  #b0 .ceil{display:flex; align-items:center; justify-content:space-between; margin-top:32px}
+  .seg{display:inline-flex; border:1px solid var(--hair); border-radius:2px; overflow:hidden}
+  .seg button{
+    font-family:var(--sans); font-size:12px; letter-spacing:.04em; color:var(--graphite);
+    background:transparent; border:none; padding:8px 18px; cursor:pointer; transition:background .25s,color .25s;
+  }
+  .seg button+button{border-left:1px solid var(--hair)}
+  #b0 .seg button,#b0send{pointer-events:none}
+  .seg button.sel{background:var(--ink); color:var(--paper)}
+  #b0 .note{font-size:12.5px; color:var(--faint); margin-top:14px}
+  #b0 .send{margin-top:40px; text-align:right}
+
+  /* ---------- beat 1 ---------- */
+  #b1 .card{padding:0}
+  #b1 .briefwrap{padding:48px 56px}
+  #b1 .from{display:block; margin-bottom:18px}
+  #b1 .brief{font-size:15.5px}
+  #b1 .chat{padding:24px 56px 28px; border-top:1px solid var(--hair)}
+  #b1 .ghosts{margin-top:22px}
+  #b1 .ghosts .ovl{display:block; margin-bottom:10px}
+
+  /* ---------- editor (beats 2-4) ---------- */
+  #ed .sheet{padding:56px 64px 64px; min-height:60vh; transition:opacity .5s, transform .5s}
+  #ed .sheet.fold{opacity:0; transform:translateY(10px) scale(.97)}
+  #ed h1{font-family:var(--serif); font-size:26px; font-weight:500; line-height:1.3}
+  #ed .choice{display:flex; gap:14px; justify-content:center; margin:64px 0 24px; transition:opacity .4s}
+  #ed .choice.gone{opacity:0; pointer-events:none}
+  .we{
+    min-height:1.8em; border-bottom:1px solid var(--hair); font-size:15px; padding:8px 2px;
+    outline:none; margin-top:40px;
+  }
+  .we:empty::before{content:attr(data-ghost); color:var(--faint)}
+  .we:focus{border-bottom-color:var(--graphite)}
+  #writeRow .row{display:flex; justify-content:flex-end; margin-top:14px}
+  .opening{margin-top:34px; transition:opacity .5s}
+  .opening.quiet{opacity:.4}
+  .opening .ovl{display:block; margin-bottom:8px}
+  .opening p{font-family:var(--serif); font-size:15.5px}
+  .sec{margin-top:34px; transition:opacity .5s}
+  .sec .ovl{display:block; margin-bottom:8px}
+  .sec p{font-size:15px}
+  .sec.quiet{opacity:.4}
+  .thread{margin:20px 0 6px; padding:18px 22px; background:var(--paper); border:1px solid var(--hair); border-radius:3px}
+  .thread .ev{background:var(--surface); border:1px solid var(--hair); border-radius:3px; padding:14px 18px; margin-top:12px}
+  .thread .ev p{font-size:13.5px; color:var(--graphite); margin-top:6px}
+  .note-field{margin-top:14px; border-left:2px solid var(--signal); padding:4px 0 4px 14px; font-size:13.5px}
+  .note-field .ovl{display:block; margin-bottom:4px}
+  .attach{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); padding:10px 0; border-top:1px solid var(--hair); border-bottom:1px solid var(--hair); margin:20px 0 4px}
+  .commit{padding:28px 32px; margin-top:28px; text-align:center}
+  .commit h2{font-family:var(--serif); font-size:20px; font-weight:500}
+  .commit .caut{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); margin:10px 0 20px}
+  .commit .bs{display:flex; gap:12px; justify-content:center}
+  .locked{margin-top:22px; padding-top:16px; border-top:1px solid var(--hair)}
+  .locked .num{font-family:var(--serif); font-size:19px}
+  .locked .basis{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--graphite); margin-top:6px}
+  #ed .sendrow{margin-top:44px; text-align:right}
+  #after{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none}
+  #after .line{font-family:var(--serif); font-size:24px}
+
+  /* ---------- beat 5 ---------- */
+  #b5 h1{font-family:var(--serif); font-size:30px; font-weight:500; margin-bottom:44px}
+  .trace{position:relative; display:flex; justify-content:space-between; margin:0 4px 8px}
+  .trace::before{content:""; position:absolute; top:5px; left:12px; right:12px; height:1px; background:var(--hair)}
+  .tnode{position:relative; text-align:center; width:86px}
+  .tnode b{display:block; width:9px; height:9px; margin:0 auto 10px; border-radius:50%; background:var(--ink); border:2px solid var(--paper)}
+  .tnode .nm{font-size:11px; letter-spacing:.09em; text-transform:uppercase; font-weight:500}
+  .tnode .cp{font-size:10.5px; color:var(--faint); line-height:1.5; margin-top:3px; overflow-wrap:break-word}
+  .expand{display:flex; gap:18px; margin:26px 0 0}
+  .expand .mom{flex:1.2; padding:18px 22px}
+  .expand .mom p{font-size:13.5px; color:var(--graphite); margin-top:6px}
+  .expand .sharp{flex:1; padding:18px 22px; border-left:2px solid var(--signal)}
+  .expand .sharp p{font-family:var(--serif); font-size:15.5px; line-height:1.55; margin-top:6px}
+  .map{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:40px}
+  .tile{min-height:104px; padding:16px 18px; display:flex; flex-direction:column; justify-content:space-between}
+  .tile .nm{font-family:var(--serif); font-size:16px}
+  .tile .band{font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--graphite); line-height:1.8}
+  .tile.lit{border-left:2px solid var(--signal)}
+  .tile.dim{align-items:center; justify-content:center}
+  .tile.dim .band{color:var(--faint)}
+  .mcards{margin-top:36px; display:flex; flex-direction:column; gap:12px}
+  .mcard{padding:18px 24px}
+  .mcard .ovl{display:block; margin-bottom:8px}
+  .mcard p{font-size:13.5px; color:var(--graphite)}
+  .mcard .ghost{margin-top:8px}
+
+  /* ---------- beat 6 ---------- */
+  #b6{display:flex; align-items:center; justify-content:center}
+  #b6 .stage{width:100%; max-width:760px; text-align:center}
+  #b6 .phase{display:none}
+  #b6 .phase.on{display:block}
+  #b6 .bigline{font-family:var(--serif); font-size:24px; margin-bottom:44px}
+  .forms{display:flex; gap:12px; justify-content:center}
+  .form{width:128px; height:150px; padding:16px 12px; display:flex; align-items:flex-end; justify-content:center}
+  .form span{font-size:11.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--graphite)}
+  .form.doc{border-left:2px solid var(--signal)}
+  #b6 .map{text-align:left; margin-top:0}
+  #b6 .ovl.cs{display:block; margin-bottom:20px; text-align:left}
+  #b6 .mapline{font-family:var(--serif); font-size:20px; margin-bottom:32px; text-align:left}
+  #close .wordbig{font-size:26px; letter-spacing:.55em; margin-left:.55em; font-weight:500}
+  #close .line{font-family:var(--serif); font-size:21px; margin-top:36px}
+  #close .replay{margin-top:64px}
+
+  @media (max-width:900px){
+    .map{grid-template-columns:repeat(2,1fr)}
+    .beat{padding:40px 32px 96px}
+    #b6 .map{grid-template-columns:repeat(2,1fr)}
+  }
+
+  /* ---------- actor + cue ---------- */
+  #actor{
+    position:fixed; z-index:60; width:13px; height:13px; border-radius:50%;
+    border:2px solid var(--signal); background:rgba(199,78,51,.12);
+    pointer-events:none; opacity:0; top:0; left:0;
+    transition:transform .6s cubic-bezier(.3,.65,.3,1), opacity .3s;
+  }
+  #actor.click{animation:aclick .35s ease}
+  @keyframes aclick{40%{scale:.55}100%{scale:1}}
+  #cue{
+    position:fixed; right:calc(clamp(280px,26vw,360px) + 32px); bottom:24px; z-index:30;
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
+    transition:opacity .3s;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wordmark">evolv</div>
+  <div class="hright">
+    <button id="liveBtn" class="livec real">live</button>
+    <div class="dots" id="dots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+</header>
+
+<main>
+<div id="surface">
+
+  <section class="beat on" id="cover">
+    <div>
+      <div class="wordbig">evolv</div>
+      <div class="rule"></div>
+      <div class="line">An enterprise walkthrough.</div>
+      <div class="sub">Type when the surface invites you.</div>
+      <div class="cue">click anywhere to move forward</div>
+    </div>
+  </section>
+
+  <!-- beat 0 -->
+  <section class="beat" id="b0">
+    <div class="col">
+      <div class="card panel" id="b0panel">
+        <span class="ovl">New brief</span>
+        <div class="to">To: you</div>
+        <div class="field"><span id="b0brief" data-t="Copperline makes a support agent that resolves customer tickets end to end, not just drafts replies. The pilot is done. Build the go-to-market plan for our first commercial year. Mid-market SaaS is the market. One document: pricing, buyer, channel, launch."></span><span class="caret" id="b0c1"></span></div>
+        <label class="ovl">What does success look like</label>
+        <div class="succ"><span id="b0succ" data-t="A plan that survives questioning. Every number defended."></span></div>
+        <div class="ceil">
+          <span class="ovl">Coaching ceiling</span>
+          <div class="seg"><button class="real">Light</button><button id="segStd" class="real">Standard</button><button class="real">Full</button></div>
+        </div>
+        <p class="note r" id="b0note">Starts light. Adapts to demonstrated capability. Never exceeds this ceiling.</p>
+        <div class="send"><button class="btn" id="b0send">Send brief</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- beat 1 -->
+  <section class="beat" id="b1">
+    <div class="col">
+      <div class="card r" id="b1card">
+        <div class="briefwrap">
+          <span class="ovl f from">From the evaluator · For you</span>
+          <p class="brief">Copperline makes a support agent that resolves customer tickets end to end, not just drafts replies. The pilot is done. Build the go-to-market plan for our first commercial year. <span class="hl" id="hl1">Mid-market SaaS is the market.</span> One document: pricing, buyer, channel, launch.</p>
+          <div class="flagline r h" id="flag1">Buyer not named.</div>
+        </div>
+        <div class="chat r h" id="b1chat">
+          <div id="b1thread"></div>
+          <div id="b1inrow" class="inrow"><input class="line" id="b1in" placeholder="Ask the brief anything." autocomplete="off" readonly><button class="sendbtn real h">send</button></div>
+          <div class="ghosts r h" id="b1ghosts">
+            <span class="ovl f">Open, never asked</span>
+            <span class="ghost" data-topic="buyer">Who signs, and which budget pays?</span>
+            <span class="ghost" data-topic="resolution">What counts as a resolved ticket?</span>
+            <span class="ghost" data-topic="wrong">Who answers when the agent gets one wrong?</span>
+            <span class="ghost h" id="b1AllAsked" style="border:none;padding-left:0">Every open question was asked.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- beats 2-4 -->
+  <section class="beat" id="ed">
+    <div class="col" style="position:relative">
+      <div class="card sheet" id="sheet">
+        <h1 class="r" id="edtitle">Go-to-market plan. Copperline.<span class="caret" id="edc"></span></h1>
+        <div class="choice r" id="choice">
+          <button class="btn real" id="btnWrite">Start writing</button>
+          <button class="btn real" id="btnGen">Generate a first draft</button>
+        </div>
+        <div id="writeRow" class="h">
+          <div class="we" id="we" contenteditable="true" data-ghost="Write your opening."></div>
+          <div class="row"><button class="sendbtn real" id="btnBring">bring in a draft</button></div>
+        </div>
+        <div class="opening r h" id="opening"><span class="ovl f">Your opening</span><p id="openingP"></p></div>
+
+        <div class="sec r h" id="secMarket"><span class="ovl">Market</span>
+          <p>About 30,000 mid-market SaaS companies run support teams of 10 to 200 people. Four billion tickets a year. Entry point: post-sales support.</p></div>
+        <div class="sec r h" id="secBuyer"><span class="ovl">Buyer</span>
+          <p id="buyerP">IT buys the software stack. Target IT through the existing helpdesk budget line.</p></div>
+        <div class="sec r h" id="secPricing"><span class="ovl">Pricing</span>
+          <p id="pricingP">Price per seat, the model buyers already budget for. Helpdesk seats run $25 to $80. <span class="hl" id="hl2">At $59 per agent seat, Copperline slots into an approved line with no new budget conversation. Recommend $59 per seat, familiar model, easy yes.</span></p>
+
+          <div class="thread r h" id="thread">
+            <span class="ovl f">Research, attached to the highlight</span>
+            <div id="rthread"></div>
+            <div id="rinrow" class="inrow"><input class="line" id="rin" placeholder="What actually happens to seats?" autocomplete="off" readonly><button class="sendbtn real h">send</button></div>
+            <div class="ev r h" id="ev1"><span class="ovl f">Pilot usage data. Nine design partners.</span>
+              <p>The agent resolved 64 percent of tickets end to end across 210,000 tickets. Support seats shrank 22 percent in six months while resolutions grew 3.1 times. Revenue per account fell fastest where the product worked best.</p></div>
+            <div class="ev r h" id="ev2"><span class="ovl f">Buyer economics brief. Cost per resolution.</span>
+              <p>A human resolution costs mid-market SaaS companies $11.40 fully loaded. The agent's marginal cost is about $0.40. Seats are budgeted by IT at $25 to $80; the savings land in the support budget, owned by the VP of customer experience.</p></div>
+            <div class="ev r h" id="ev3"><span class="ovl f">Comparable case. AI sales outreach.</span>
+              <p>A comparable AI product launched at $70 per seat and stalled at 12 accounts; champions could not defend shrinking teams paying more. Repriced per qualified meeting, it reached 90 accounts in a year.</p></div>
+            <div class="resp r h" id="rsynth"></div>
+            <div class="note-field r h" id="rnote"><span class="ovl">Reasoning, pinned</span><span id="rnoteT" data-t="Per seat charges for the humans the product removes. Success shrinks the bill. Wrong unit, not wrong product."></span></div>
+            <div class="r h" id="chal">
+              <span class="ovl f" style="display:block;margin-top:16px">Challenge</span>
+              <div id="cthread"></div>
+              <div id="cinrow" class="inrow"><input class="line" id="cin" placeholder="Defend $59 per seat." autocomplete="off" readonly><button class="sendbtn real h">send</button></div>
+              <div class="resp" id="cresp"></div>
+              <div class="r h" id="restrow" style="margin-top:16px"><button class="btn" id="btnRestr">Restructure the plan</button></div>
+            </div>
+          </div>
+          <div class="attach r h" id="attach">Attached: 3 sources, 1 note, 1 challenge</div>
+
+          <div class="card commit r h" id="commit">
+            <h2>Set the number.</h2>
+            <div class="caut" id="commitCaut">Pilot: nine design partners, white-glove onboarding.</div>
+            <div class="bs" id="commitBtns">
+              <button class="btn solid real" id="btnCommit">Commit $1.50 per resolution</button>
+              <button class="btn real" id="btnHold">Hold at per-seat</button>
+            </div>
+            <div class="locked r h" id="locked">
+              <div class="num" id="lockedNum"></div>
+              <div class="basis" id="lockedBasis"></div>
+            </div>
+          </div>
+        </div>
+        <div class="sec r h" id="secChannel"><span class="ovl">Channel</span>
+          <p id="channelP">Self-serve trial, plus sales assist for teams over 50 seats.</p></div>
+        <div class="sec r h" id="secYear"><span class="ovl">First year</span>
+          <p>Launch broadly. Build logos. Review adoption quarterly.</p></div>
+        <div class="sendrow r h" id="sendrow"><button class="btn solid" id="btnSend">Send to evaluator</button></div>
+      </div>
+      <div id="after"><div class="line r" id="afterline">How you worked.</div></div>
+    </div>
+  </section>
+
+  <!-- beat 5 -->
+  <section class="beat" id="b5">
+    <div class="col">
+      <h1 class="r" id="b5h">How you worked.</h1>
+      <div class="trace r" id="trace">
+        <div class="tnode" id="tn0"><b></b><div class="nm">Discern</div><div class="cp">the missing buyer</div></div>
+        <div class="tnode"><b></b><div class="nm">Inquire</div><div class="cp" id="cpQ">your question</div></div>
+        <div class="tnode"><b></b><div class="nm">Discern</div><div class="cp">the $59 claim</div></div>
+        <div class="tnode"><b></b><div class="nm">Analyze</div><div class="cp">three sources, one note</div></div>
+        <div class="tnode"><b></b><div class="nm">Test</div><div class="cp">the challenge</div></div>
+        <div class="tnode"><b></b><div class="nm">Correct</div><div class="cp">the restructure</div></div>
+        <div class="tnode"><b></b><div class="nm">Decide</div><div class="cp" id="cpD">$1.50 committed</div></div>
+      </div>
+      <div class="expand">
+        <div class="card mom r" id="b5mom"><span class="ovl">Discern, two moments</span>
+          <p>Marked the brief's missing buyer, before writing.</p>
+          <p>Marked the draft's $59. Confidently stated, structurally wrong.</p></div>
+        <div class="card sharp r" id="b5sharp"><span class="ovl">Sharpest moment</span>
+          <p>Familiar unit, wrong incentive. You caught the draft billing the seats it shrinks.</p></div>
+      </div>
+      <div class="map" id="b5map">
+        <div class="card tile lit r"><div class="nm">Perception</div><div class="band">evidence-confidence: strong<br>2 observations</div></div>
+        <div class="card tile lit r"><div class="nm">Reasoning</div><div class="band">evidence-confidence: strong<br>2 observations</div></div>
+        <div class="card tile lit r"><div class="nm">Creation</div><div class="band">evidence-confidence: moderate<br>2 observations</div></div>
+        <div class="card tile lit r"><div class="nm">Decision</div><div class="band">evidence-confidence: early<br>1 observation</div></div>
+        <div class="card tile dim r"><div class="band">No evidence yet.</div></div>
+        <div class="card tile dim r"><div class="band">No evidence yet.</div></div>
+        <div class="card tile dim r"><div class="band">No evidence yet.</div></div>
+        <div class="card tile dim r"><div class="band">No evidence yet.</div></div>
+      </div>
+      <div class="ovl f r" id="b5cap" style="display:block;margin-top:16px">Four domains this work never touched.</div>
+      <div class="mcards">
+        <div class="card mcard r" id="b5trust"><span class="ovl">Trust</span>
+          <p>Taken as written: market size, channel, first year. Never challenged.</p>
+          <p style="margin-top:6px" id="neverAskedLabel">Never asked:</p>
+          <div id="trustGhosts">
+            <span class="ghost" data-topic="buyer">Who signs, and which budget pays?</span>
+            <span class="ghost" data-topic="resolution">What counts as a resolved ticket?</span>
+            <span class="ghost" data-topic="wrong">Who answers when the agent gets one wrong?</span>
+          </div>
+          <p class="h" id="trustAllAsked">You asked every open question before writing.</p></div>
+        <div class="card mcard r" id="b5coach"><span class="ovl">Coaching</span>
+          <p>Coaching ceiling: Standard. Used: light.</p></div>
+        <div class="card mcard r" id="b5stretch" style="border-left:2px solid var(--signal)"><span class="ovl">Stretch next</span>
+          <p>Test. You put one claim against evidence. Three sections shipped unexamined.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- beat 6 -->
+  <section class="beat" id="b6">
+    <div class="stage">
+      <div class="phase" id="ph1">
+        <div class="bigline r" id="ph1line">The document was one form.</div>
+        <div class="forms">
+          <div class="card form doc r"><span>Go-to-market plan</span></div>
+          <div class="card form r"><span>Dashboard</span></div>
+          <div class="card form r"><span>Prototype</span></div>
+          <div class="card form r"><span>Project plan</span></div>
+          <div class="card form r"><span>Physical product</span></div>
+        </div>
+      </div>
+      <div class="phase" id="ph2">
+        <span class="ovl cs r" id="csovl">Capability Science</span>
+        <div class="mapline r" id="ph2line">Eight domains. Four lit today. Different work lights the rest.</div>
+        <div class="map" style="grid-template-columns:repeat(4,1fr)">
+          <div class="card tile lit r"><div class="nm">Perception</div></div>
+          <div class="card tile lit r"><div class="nm">Reasoning</div></div>
+          <div class="card tile lit r"><div class="nm">Creation</div></div>
+          <div class="card tile lit r"><div class="nm">Decision</div></div>
+          <div class="card tile r"><div class="nm" style="color:var(--graphite)">Execution</div></div>
+          <div class="card tile r"><div class="nm" style="color:var(--graphite)">Human</div></div>
+          <div class="card tile r"><div class="nm" style="color:var(--graphite)">Systems</div></div>
+          <div class="card tile r"><div class="nm" style="color:var(--graphite)">Growth</div></div>
+        </div>
+      </div>
+      <div class="phase" id="close">
+        <div class="wordbig r" id="clwm">evolv</div>
+        <div class="line r" id="clline">Capability, read from real work, while you just do the job.</div>
+        <div class="replay r" id="clreplay"><button class="btn real" id="btnReplay">Replay</button></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<aside id="rail">
+  <div id="voice">
+    <p id="say"></p>
+    <div id="chipzone"></div>
+  </div>
+  <div id="domains">
+    <span class="ovl f">Capability domains</span>
+    <div class="dom" id="domPerception"><span>Perception</span><span class="ct"></span></div>
+    <div class="dom" id="domCreation"><span>Creation</span><span class="ct"></span></div>
+    <div class="dom" id="domReasoning"><span>Reasoning</span><span class="ct"></span></div>
+    <div class="dom" id="domDecision"><span>Decision</span><span class="ct"></span></div>
+    <div class="ovl f" style="margin-top:12px">Four of eight domains.</div>
+  </div>
+</aside>
+</main>
+
+<div id="veil">
+  <div class="card real" id="panelC">
+    <span class="ovl">Connect intelligence</span>
+    <p>Paste an Anthropic API key. It stays in this browser; calls go directly to Anthropic. Without one, a staged bank answers.</p>
+    <input class="line" id="keyIn" type="password" placeholder="sk-ant-..." autocomplete="off">
+    <div class="row">
+      <button class="btn" id="keySave">connect</button>
+      <button class="sendbtn" id="keyClear">disconnect</button>
+      <span id="keyStatus">cold</span>
+    </div>
+  </div>
+</div>
+
+<div id="actor"></div>
+<div id="cue"></div>
+
+<script>
+(function(){
+  'use strict';
+  var $=function(id){return document.getElementById(id)};
+  function range(n){var a=[],i;for(i=0;i<n;i++)a.push(i);return a}
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+
+  /* ---------- state ---------- */
+  var busy=false, lock=false, armed=null, choiceState=null, stepIdx=-1, cancelFns=[], ffQueue=null, ended=false;
+  var counts={Perception:0,Creation:0,Reasoning:0,Decision:0};
+  var session={firstQuestion:null, askedTopics:{}, followups:0, choice:null, committed:null, opening:''};
+  var apiKey='';
+  try{apiKey=localStorage.getItem('evolv-key')||'';}catch(e){}
+
+  /* ---------- agent: world + live + staged ---------- */
+  var WORLD=[
+    'You are the assistant inside Evolv, a work surface where an enterprise professional is building a go-to-market plan. You are part of the product. Never mention being an AI model, Claude, Anthropic, an API, or that this is a demo. Never break character.',
+    '',
+    'The world, invented and internally consistent. Never contradict it:',
+    'Copperline makes an AI support agent that resolves customer tickets end to end, not just drafts replies. The pilot is complete: nine design partners, 210,000 tickets, 64 percent resolved end to end, support seats down 22 percent in six months while resolutions grew 3.1 times. The professional you assist received a brief from their evaluator: build the go-to-market plan for Copperline’s first commercial year, mid-market SaaS as the market, one document covering pricing, buyer, channel, launch. Success means a plan that survives questioning, every number defended.',
+    'Market facts: about 30,000 mid-market SaaS companies run support teams of 10 to 200 people; four billion tickets a year. Helpdesk seats run $25 to $80 and are budgeted by IT. A human resolution costs $11.40 fully loaded; the agent’s marginal cost is about $0.40; the savings land in the support budget, owned by the VP of customer experience. A first draft of the plan recommends $59 per agent seat. That per-seat price is structurally wrong: the product shrinks the seats it bills, so the best accounts pay less every quarter, and at $59 IT compares it to $25 helpdesk seats in the same budget line, a losing comparison. The defensible correction: $1.50 per resolved ticket with an annual floor, sold to the VP of customer experience against their $11.40 cost per resolution. Honest caution: the pilot’s 64 percent came from nine hand-picked partners with white-glove onboarding, so at scale it could land lower, and usage pricing makes bills harder to predict; the floor protects the downside. Comparable case: an AI sales outreach product launched at $70 per seat, stalled at 12 accounts, repriced per qualified meeting, reached 90 accounts in a year. The pricing decision belongs to the professional, not to you.',
+    '',
+    'Style contract, absolute:',
+    'Plain prose only. No markdown, no headings, no lists, no asterisks. No em dashes; use commas or periods. No exclamation marks. Plain language a board member parses in one read. Calm, precise, whisper-adjacent. Concrete numbers from the world only; never invent new figures. Never use these words: grade, quiz, score, certificate, course, curriculum, LMS, skill, skills, and never use test as a noun for assessment.',
+    '',
+    'Moments. Each user message begins with a moment tag.',
+    '[moment: brief] The professional is interrogating the brief before writing. Answer their actual question from the world in 2 to 4 sentences. Where the brief is silent, say so plainly and give the underlying facts that matter. Do not write the plan for them and do not reveal the pricing correction yet; if asked directly about what to charge, say the brief leaves the number to them.',
+    '[moment: research] They highlighted the $59 per-seat claim and asked a research question. Three sources are on screen: the pilot usage data, the buyer economics brief, and the comparable case. Answer their actual question strictly from those sources in 2 to 4 sentences. You may observe that the product shrinks the seats it bills. Do not propose the corrected price yet.',
+    '[moment: challenge] They are challenging the draft’s $59 per-seat recommendation. First engage their specific argument in a sentence or two. Then conclude it does not hold, for the structural reasons in the world. Then propose the restructure: $1.50 per resolved ticket with an annual floor, sold to the VP of customer experience against $11.40 per resolution. End with the honest caution and the sentence: This price is a judgment call, and it is yours. At most 170 words, in up to three short paragraphs separated by blank lines.'
+  ].join('\n');
+
+  var history={brief:[],research:[],challenge:[]};
+
+  function sanitize(t){
+    return t.replace(/\[\s*moment[^\]]*\]/gi,' ').replace(/—|–/g,', ').replace(/\s+,/g,',').replace(/[#*_`>]/g,'').trim();
+  }
+  var bannedRe=/\b(grade[sd]?|grading|quiz(?:zes)?|score[sd]?|scoring|certificate[s]?|certification|course[s]?|curriculum|LMS|skills?)\b/i;
+
+  var fallbacksOk=true;
+  async function liveCall(moment,text){
+    if(!apiKey)return null;
+    try{
+      var ctrl=new AbortController();
+      var to=setTimeout(function(){ctrl.abort()},15000);
+      var headers={
+        'content-type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      };
+      var body={
+        model:'claude-opus-5',
+        max_tokens:700,
+        output_config:{effort:'low'},
+        system:[{type:'text',text:WORLD,cache_control:{type:'ephemeral'}}],
+        messages:history[moment].concat([{role:'user',content:'[moment: '+moment+'] '+text.replace(/\[\s*moment[^\]]*\]/gi,' ')}])
+      };
+      if(fallbacksOk){
+        headers['anthropic-beta']='server-side-fallback-2026-07-01';
+        body.fallbacks='default';
+      }
+      var res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST', signal:ctrl.signal, headers:headers, body:JSON.stringify(body)
+      });
+      clearTimeout(to);
+      if(res.status===400&&fallbacksOk){
+        fallbacksOk=false;
+        return liveCall(moment,text);
+      }
+      if(!res.ok)return null;
+      var data=await res.json();
+      if(data.stop_reason==='refusal'||data.stop_reason==='max_tokens')return null;
+      var out=(data.content||[]).filter(function(b){return b.type==='text'}).map(function(b){return b.text}).join('\n\n').trim();
+      if(!out||bannedRe.test(out))return null;
+      history[moment].push({role:'user',content:'[moment: '+moment+'] '+text});
+      history[moment].push({role:'assistant',content:data.content});
+      return sanitize(out);
+    }catch(e){return null;}
+  }
+
+  /* staged bank, intent-routed */
+  var BANK={
+    brief:{
+      buyer:'The brief does not say. In mid-market SaaS, support seats are budgeted by IT at $25 to $80, but the cost of resolving tickets sits in the support budget, owned by the VP of customer experience. Who signs decides what a price can be. Worth settling before the plan takes shape.',
+      resolution:'The brief never defines it. The pilot counted a ticket resolved when the customer confirmed or went quiet for 72 hours with no reopen. Whether that definition survives contact with buyers is an open question the plan will inherit.',
+      wrong:'The brief is silent on it. In the pilot, misresolved tickets reopened to a human queue within a day. Who owns that queue at a customer, and what it costs them, is unwritten.',
+      pricing:'The brief leaves the number to you. It asks only that every number survives questioning.',
+      pilot:'Nine design partners, hand-picked, with white-glove onboarding. The 64 percent held across 210,000 tickets, but nothing about the pilot was random. Whether it survives ordinary customers is the open bet the plan inherits.',
+      competitive:'The brief does not name rivals. Helpdesk incumbents sell seats at $25 to $80, and drafting assistants are everywhere. Resolving tickets end to end with no human touch is the claim nobody else is making.',
+      offtopic:'That sits outside the brief. What it gives you: mid-market SaaS, a first commercial year, one document, every number defended. What it never gives you is who buys, or what a resolved ticket even is.',
+      spent:'The brief has said what it has to say. The gaps that remain are yours to carry into the plan.'
+    },
+    research:{
+      seat:'Your question has one honest answer in the data: the seats shrink. The product bills the very unit it removes, and the number it improves lives in a different budget than the one it charges.',
+      cost:'The math is lopsided. A human resolution costs $11.40 fully loaded; the agent’s marginal cost is about forty cents. The seat price captures almost none of that gap, and the budget it bills is not the budget it saves.'
+    },
+    challenge:[
+      'Challenged, and it does not hold. Per seat ties revenue to the head count the product exists to shrink; the best accounts pay less every quarter. And at $59, IT compares it to $25 helpdesk seats in the same budget line, a comparison it loses. The value is real. The unit is wrong.',
+      'Restructure: price the resolution, not the seat. $1.50 per resolved ticket with an annual floor, sold to the VP of customer experience against their $11.40 cost per resolution. Every ticket the agent closes saves the buyer about ten dollars, and revenue grows with the work the product actually does.',
+      'Caution: the 64 percent resolution rate came from nine hand-picked partners with white-glove onboarding. At scale it could land lower, and usage pricing makes bills harder to predict. The floor protects the downside. This price is a judgment call, and it is yours.'
+    ]
+  };
+
+  function topicsOf(t){
+    t=t.toLowerCase(); var s={};
+    if(/buy|sign|budget|pay|purchas|procure|decision|champion|who owns|stakehold/.test(t))s.buyer=1;
+    if(/resolv|resolution|count|metric|measur|defin|success rate|reopen/.test(t))s.resolution=1;
+    if(/pilot|design partner|cherry|sample|210|nine|64|evidence|data/.test(t))s.pilot=1;
+    if(/wrong|error|mistake|fail|escalat|incorrect|hallucin|angry|bad answer|screw/.test(t))s.wrong=1;
+    if(/compet|rival|alternative|incumbent|else|instead|other product/.test(t))s.competitive=1;
+    if(/price|pricing|charge|cost|\$|dollar|how much/.test(t))s.pricing=1;
+    return s;
+  }
+  var usedBrief={};
+  function stagedBrief(text){
+    var s=topicsOf(text);
+    var order=[];
+    ['buyer','resolution','pilot','wrong','competitive','pricing'].forEach(function(k){if(s[k])order.push(k)});
+    if(!order.length){order=['offtopic'];}
+    else{['buyer','resolution','pilot','wrong','competitive','pricing'].forEach(function(k){if(order.indexOf(k)<0)order.push(k)});}
+    for(var i=0;i<order.length;i++){
+      var k=order[i];
+      if(!usedBrief[k]&&BANK.brief[k]){usedBrief[k]=1; return BANK.brief[k];}
+    }
+    return BANK.brief.spent;
+  }
+  function stagedResearch(text){
+    var t=text.toLowerCase();
+    if(/cost|pay|price|\$|margin|dollar/.test(t))return BANK.research.cost;
+    return BANK.research.seat;
+  }
+  async function getAnswer(moment,text){
+    var live=await liveCall(moment,text);
+    if(live){$('liveBtn').title=''; return live;}
+    if(apiKey)$('liveBtn').title='live unavailable; staged answers shown';
+    if(moment==='brief')return stagedBrief(text);
+    if(moment==='research')return stagedResearch(text);
+    return BANK.challenge.join('\n\n');
+  }
+
+  /* ---------- rail ---------- */
+  function say(text){
+    var el=$('say');
+    el.classList.remove('in');
+    setTimeout(function(){el.textContent=text; el.classList.add('in');},120);
+  }
+  function sayNow(text){var el=$('say'); el.textContent=text; el.classList.add('in');}
+  function chip(sig,dom){
+    var z=$('chipzone'); z.innerHTML='';
+    var c=document.createElement('span'); c.className='chip';
+    c.textContent=sig+' · '+dom; z.appendChild(c);
+    requestAnimationFrame(function(){requestAnimationFrame(function(){c.classList.add('in')})});
+    counts[dom]++;
+    var d=$('dom'+dom); d.classList.add('lit');
+    d.querySelector('.ct').textContent=new Array(counts[dom]+1).join('·');
+  }
+  function chipNow(sig,dom){
+    var z=$('chipzone'); z.innerHTML='';
+    var c=document.createElement('span'); c.className='chip in';
+    c.textContent=sig+' · '+dom; z.appendChild(c);
+    counts[dom]++;
+    var d=$('dom'+dom); d.classList.add('lit');
+    d.querySelector('.ct').textContent=new Array(counts[dom]+1).join('·');
+  }
+  function ledger(text){
+    var z=$('chipzone'); z.innerHTML='';
+    var l=document.createElement('div'); l.className='ledger';
+    l.textContent=text; z.appendChild(l);
+    requestAnimationFrame(function(){requestAnimationFrame(function(){l.classList.add('in')})});
+  }
+  function ledgerNow(text){
+    var z=$('chipzone'); z.innerHTML='';
+    var l=document.createElement('div'); l.className='ledger in';
+    l.textContent=text; z.appendChild(l);
+  }
+  function clearZone(){$('chipzone').innerHTML='';}
+
+  /* ---------- beats ---------- */
+  var beatSection={0:'b0',1:'b1',2:'ed',3:'ed',4:'ed',5:'b5',6:'b6'};
+  var curSection='cover';
+  function showBeat(n){
+    var id=beatSection[n];
+    if(id!==curSection){
+      document.querySelectorAll('.beat').forEach(function(s){s.classList.remove('on')});
+      $(id).classList.add('on');
+      curSection=id;
+      clearZone();
+    }
+    var dots=$('dots').children;
+    for(var i=0;i<7;i++){dots[i].className=i<n?'past':(i===n?'now':'');}
+  }
+
+  /* ---------- op runner (structural steps) ---------- */
+  function runOps(ops,onDone){
+    busy=true; updateCue();
+    var i=0, curOp=null;
+    function next(){
+      curOp=null;
+      if(ffQueue){while(i<ops.length){var o=ops[i++]; if(o.snap)o.snap();} finish(); return;}
+      if(i>=ops.length){finish(); return;}
+      curOp=ops[i++]; curOp.go(next);
+    }
+    function finish(){
+      busy=false; ffQueue=null; cancelFns=[]; runOps.ff=null; updateCue();
+      if(onDone)onDone();
+    }
+    runOps.ff=function(){
+      ffQueue=true;
+      cancelFns.forEach(function(f){f()}); cancelFns=[];
+      if(curOp){if(curOp.snap)curOp.snap(); curOp=null;}
+      while(i<ops.length){var o=ops[i++]; if(o.snap)o.snap();}
+      finish();
+    };
+    next();
+  }
+  runOps.ff=null;
+
+  function W(ms){return{go:function(n){var t=setTimeout(n,ms); cancelFns.push(function(){clearTimeout(t)})}}}
+  function CALL(fn){return{go:function(n){fn(); n()},snap:fn}}
+  function SHOW(id,gap){return{go:function(n){reveal($(id)); var t=setTimeout(n,gap||220); cancelFns.push(function(){clearTimeout(t)})},snap:function(){reveal($(id))}}}
+  function SAY(text){return{go:function(n){say(text); var t=setTimeout(n,320); cancelFns.push(function(){clearTimeout(t)})},snap:function(){sayNow(text)}}}
+  function CHIP(sig,dom){var done=false; return{go:function(n){done=true; chip(sig,dom); var t=setTimeout(n,200); cancelFns.push(function(){clearTimeout(t)})},snap:function(){if(done)return; done=true; chipNow(sig,dom)}}}
+  function LED(text){return{go:function(n){ledger(text); var t=setTimeout(n,200); cancelFns.push(function(){clearTimeout(t)})},snap:function(){ledgerNow(text)}}}
+  function TW(id,speed){return{
+    go:function(n){
+      var el=$(id), full=el.dataset.t, t0=performance.now(), rate=speed||9;
+      var iv=setInterval(function(){
+        var k=Math.floor((performance.now()-t0)/rate);
+        el.textContent=full.slice(0,k);
+        if(k>=full.length){clearInterval(iv); setTimeout(n,150);}
+      },40);
+      cancelFns.push(function(){clearInterval(iv)});
+    },
+    snap:function(){var el=$(id); el.textContent=el.dataset.t;}
+  }}
+  function BEAT(n){return{go:function(nx){showBeat(n); var t=setTimeout(nx,360); cancelFns.push(function(){clearTimeout(t)})},snap:function(){showBeat(n)}}}
+  function SCROLL(id){return{go:function(n){$(id).scrollIntoView({behavior:'smooth',block:'center'}); var t=setTimeout(n,550); cancelFns.push(function(){clearTimeout(t)})},snap:function(){$(id).scrollIntoView({block:'center'})}}}
+
+  function reveal(el){el.classList.remove('h'); void el.offsetWidth; el.classList.add('in');}
+
+  /* ---------- actor ---------- */
+  var actor=$('actor');
+  function placeActor(el){
+    var r=el.getBoundingClientRect();
+    actor.style.transform='translate('+(r.left+r.width/2-7)+'px,'+(r.top+r.height/2-7)+'px)';
+  }
+  function ACT(id,fn,dur){return{
+    done:false,
+    go:function(n){
+      var el=$(id);
+      if(actor.style.opacity!=='1'){
+        var r0=el.getBoundingClientRect();
+        actor.style.transitionDuration='0s, .3s';
+        actor.style.transform='translate('+(r0.left+r0.width/2-7)+'px,'+(r0.top+r0.height/2+90)+'px)';
+        void actor.offsetWidth;
+      }
+      actor.style.transitionDuration=(dur||0.6)+'s, .3s';
+      actor.style.opacity='1';
+      placeActor(el);
+      var self=this;
+      var t=setTimeout(function(){
+        actor.classList.add('click');
+        if(fn&&!self.done){self.done=true; fn();}
+        var t2=setTimeout(function(){actor.classList.remove('click'); n();},380);
+        cancelFns.push(function(){clearTimeout(t2)});
+      },(dur||0.6)*1000+80);
+      cancelFns.push(function(){clearTimeout(t)});
+    },
+    snap:function(){actor.style.opacity='0'; if(fn&&!this.done){this.done=true; fn();}}
+  }}
+  function ACTHIDE(){return CALL(function(){actor.style.opacity='0'})}
+
+  /* ---------- conversational helpers ---------- */
+  function addQ(threadId,text){
+    var p=document.createElement('p'); p.className='q'; p.textContent=text;
+    $(threadId).appendChild(p);
+  }
+  function addAnswer(threadId,text){
+    var wrap=document.createElement('div'); wrap.className='resp';
+    text.split(/\n\n+/).forEach(function(par){
+      var p=document.createElement('p'); p.textContent=par.trim(); wrap.appendChild(p);
+    });
+    $(threadId).appendChild(wrap);
+    return wrap;
+  }
+  function addThink(threadId){
+    var d=document.createElement('div'); d.className='think';
+    d.innerHTML='<i></i><i></i><i></i>';
+    $(threadId).appendChild(d);
+    return d;
+  }
+  function hideRow(rowId){$(rowId).classList.add('h')}
+  function showRow(rowId,inputId){
+    var row=$(rowId); row.classList.remove('h');
+    var inp=$(inputId); inp.removeAttribute('readonly'); inp.value='';
+    row.querySelector('.sendbtn').classList.remove('h');
+    inp.focus();
+  }
+
+  function arm(kind,inputId,rowId,auto,max,onSend){
+    armed={kind:kind,input:inputId,row:rowId,auto:auto,turns:0,max:max,onSend:onSend};
+    showRow(rowId,inputId);
+    updateCue();
+  }
+  function disarm(){
+    if(armed){hideRow(armed.row); armed=null;}
+    updateCue();
+  }
+  function doSend(text){
+    if(!armed||lock)return;
+    var a=armed;
+    a.turns++;
+    hideRow(a.row);
+    a.onSend(text,a);
+  }
+  function autoSend(){
+    if(!armed||lock)return;
+    var a=armed;
+    var val=$(a.input).value.trim();
+    if(val){doSend(val); return;}
+    lock=true; updateCue();
+    var el=$(a.input), t0=performance.now(), full=a.auto;
+    var iv=setInterval(function(){
+      var k=Math.floor((performance.now()-t0)/22);
+      el.value=full.slice(0,k);
+      if(k>=full.length){clearInterval(iv); lock=false; doSend(full);}
+    },40);
+  }
+
+  /* Beat 1 chat */
+  async function chatSend(text,a){
+    lock=true; updateCue();
+    addQ('b1thread',text);
+    var tp=topicsOf(text);
+    for(var k in tp)session.askedTopics[k]=1;
+    if(a.turns===1){
+      session.firstQuestion=text;
+      say('Inquire. Your question came before the first sentence.');
+      chip('Inquire','Creation');
+    }else{
+      session.followups++;
+      ledger('Follow-up recorded.');
+    }
+    var th=addThink('b1thread');
+    var ans=await getAnswer('brief',text);
+    th.remove();
+    var w=addAnswer('b1thread',ans); reveal(w);
+    $('b1card').scrollIntoView({behavior:'smooth',block:'end'});
+    lock=false;
+    if(a.turns<a.max){showRow(a.row,a.input);}else{armed=null;}
+    updateCue();
+  }
+
+  /* Beat 4 research */
+  async function researchSend(text,a){
+    lock=true; updateCue();
+    armed=null;
+    addQ('rthread',text);
+    say('Research pulls sources the claim must survive.');
+    await sleep(600);
+    reveal($('ev1')); $('ev1').scrollIntoView({behavior:'smooth',block:'center'});
+    await sleep(1100);
+    say('The product shrinks the seats it bills.');
+    reveal($('ev2')); $('ev2').scrollIntoView({behavior:'smooth',block:'center'});
+    await sleep(1100);
+    say('One comparable case, weighed before it counts.');
+    reveal($('ev3')); $('ev3').scrollIntoView({behavior:'smooth',block:'center'});
+    await sleep(900);
+    var th=addThink('rthread');
+    var ans=await getAnswer('research',text);
+    th.remove();
+    var rs=$('rsynth');
+    rs.textContent='';
+    ans.split(/\n\n+/).forEach(function(par){
+      var p=document.createElement('p'); p.textContent=par.trim(); rs.appendChild(p);
+    });
+    reveal(rs); rs.scrollIntoView({behavior:'smooth',block:'center'});
+    await sleep(1000);
+    say('Analyze. Three sources weighed against one confident number.');
+    reveal($('rnote')); $('rnote').scrollIntoView({behavior:'smooth',block:'center'});
+    await twAsync('rnoteT',14);
+    chip('Analyze','Reasoning');
+    lock=false; updateCue();
+  }
+
+  /* Beat 4 challenge */
+  async function challengeSend(text,a){
+    lock=true; updateCue();
+    armed=null;
+    addQ('cthread',text);
+    say('Test. The draft’s logic put against the buyer’s math.');
+    chip('Test','Reasoning');
+    var th=addThink('cthread');
+    var ans=await getAnswer('challenge',text);
+    th.remove();
+    var cr=$('cresp');
+    var pars=ans.split(/\n\n+/);
+    for(var i=0;i<pars.length;i++){
+      var p=document.createElement('p'); p.textContent=pars[i].trim();
+      p.className='r'; cr.appendChild(p);
+      void p.offsetWidth; p.classList.add('in');
+      p.scrollIntoView({behavior:'smooth',block:'center'});
+      await sleep(500);
+    }
+    reveal($('restrow')); $('restrow').scrollIntoView({behavior:'smooth',block:'center'});
+    lock=false; updateCue();
+  }
+
+  function twAsync(id,rate){
+    return new Promise(function(res){
+      var el=$(id), full=el.dataset.t, t0=performance.now();
+      var iv=setInterval(function(){
+        var k=Math.floor((performance.now()-t0)/(rate||9));
+        el.textContent=full.slice(0,k);
+        if(k>=full.length){clearInterval(iv); res();}
+      },40);
+    });
+  }
+
+  /* ---------- dom mutations ---------- */
+  function selStd(){$('segStd').classList.add('sel')}
+  function foldPanel(){$('b0panel').classList.add('fold')}
+  function hlOn(id){$(id).classList.add('on')}
+  function killChoice(){
+    var ch=$('choice'); ch.classList.add('gone'); $('edc').style.display='none';
+    setTimeout(function(){ch.style.display='none'},450);
+  }
+  function quietAll(){['secMarket','secBuyer','secChannel','secYear','opening'].forEach(function(s){$(s).classList.add('quiet')})}
+  function wakeAll(){['secMarket','secBuyer','secChannel','secYear','opening'].forEach(function(s){$(s).classList.remove('quiet')})}
+  function swapP(id,text){
+    var el=$(id); el.style.transition='opacity .35s'; el.style.opacity='0';
+    setTimeout(function(){el.textContent=text; el.style.opacity='1';},360);
+  }
+  function restructure(){
+    swapP('pricingP','$1.50 per resolved ticket, annual floor commitment, humans free. Sold against the $11.40 cost of a human resolution. The bill grows with resolutions, not seats. Pilot: 64 percent resolved end to end across 210,000 tickets.');
+    swapP('buyerP','The VP of customer experience owns cost per resolution. Lead there. IT joins for the security review, not the decision.');
+    swapP('channelP','Direct sales, led by the resolution case. Sell the resolution, not the seat.');
+    $('thread').style.display='none';
+    reveal($('attach'));
+    wakeAll();
+  }
+  function lockCommit(branch){
+    session.committed=branch;
+    $('commitBtns').style.display='none';
+    $('commitCaut').style.display='none';
+    if(branch==='commit'){
+      $('lockedNum').textContent='$1.50 per resolved ticket';
+      $('lockedBasis').textContent='Basis: value holds at half the pilot resolution rate.';
+    }else{
+      $('lockedNum').textContent='$59 per seat, held';
+      $('lockedBasis').textContent='Basis: familiar unit while resolution data matures.';
+    }
+    reveal($('locked'));
+  }
+  function foldSheet(){$('sheet').classList.add('fold')}
+
+  function fillMirror(){
+    if(session.firstQuestion){
+      var q=session.firstQuestion;
+      $('cpQ').textContent=q.length>20?q.slice(0,19).trim()+'…':q;
+    }
+    $('cpD').textContent=session.committed==='hold'?'held at per-seat':'$1.50 committed';
+    var anyLeft=false;
+    document.querySelectorAll('#trustGhosts .ghost').forEach(function(g){
+      if(session.askedTopics[g.dataset.topic]){g.classList.add('h');}else{anyLeft=true;}
+    });
+    if(!anyLeft){
+      $('neverAskedLabel').classList.add('h');
+      $('trustGhosts').classList.add('h');
+      $('trustAllAsked').classList.remove('h');
+    }
+  }
+  function fillGhosts(){
+    var anyLeft=false;
+    document.querySelectorAll('#b1ghosts .ghost[data-topic]').forEach(function(g){
+      if(session.askedTopics[g.dataset.topic]){g.classList.add('h');}else{anyLeft=true;}
+    });
+    if(!anyLeft)$('b1AllAsked').classList.remove('h');
+  }
+
+  /* ---------- choice resolution ---------- */
+  function resolveCanvas(kind){
+    if(choiceState!=='canvas')return;
+    if(kind==='generate'){
+      choiceState=null;
+      session.choice='generate';
+      killChoice();
+      ledger('Choice recorded: generate first.');
+      say('Generating first is not a shortcut. It is raw material.');
+      updateCue();
+    }else{
+      choiceState='bringin';
+      session.choice='write';
+      killChoice();
+      $('writeRow').classList.remove('h');
+      $('we').focus();
+      ledger('Choice recorded: write first.');
+      say('Writing first is not slower. It is also read.');
+      updateCue();
+    }
+  }
+  function doBringIn(){
+    if(choiceState!=='bringin')return;
+    choiceState=null;
+    var t=$('we').textContent.trim();
+    $('writeRow').classList.add('h');
+    if(t){
+      session.opening=t;
+      $('openingP').textContent=t;
+      reveal($('opening'));
+    }
+    updateCue();
+    nextStep();
+  }
+  function resolveCommit(branch){
+    if(choiceState!=='commit')return;
+    choiceState=null;
+    lockCommit(branch);
+    chip('Decide','Decision');
+    say(branch==='commit'
+      ?'Decide. A number committed while the evidence is thin.'
+      :'Decide. Holding the seat is also a call.');
+    updateCue();
+  }
+
+  /* ---------- steps ---------- */
+  var steps=[
+    /* B0 s1 */ {ops:[BEAT(0),SAY('A real task, written by the person who needs it done.'),W(200),TW('b0brief',8),CALL(function(){$('b0c1').style.display='none'}),W(350),SAY("Success defined up front, in the evaluator's own words."),TW('b0succ',12)]},
+    /* B0 s2 */ {ops:[SAY('The ceiling sets the most coaching Evolv may give.'),ACT('segStd',selStd),W(300),SAY('Everyone starts light. Demonstrated capability sets the level.'),SHOW('b0note'),ACTHIDE()]},
+    /* B0 s3 */ {ops:[SAY('From here, your work speaks for itself.'),ACT('b0send',foldPanel),ACTHIDE()]},
+
+    /* B1 s1 */ {ops:[BEAT(1),SAY('The brief arrives untouched. No instructions were added.'),SHOW('b1card',350),ACT('hl1',null,1.5),ACTHIDE()]},
+    /* B1 s2 */ {ops:[SAY('Discern. You marked what the brief never says.'),ACT('hl1',function(){hlOn('hl1')}),SHOW('flag1'),W(200),CHIP('Discern','Perception'),ACTHIDE()]},
+    /* B1 s3 */ {ops:[SHOW('b1chat',250),CALL(function(){
+                   arm('chat','b1in','b1inrow','Who actually signs, and which budget pays?',3,chatSend);
+                 })]},
+    /* B1 s4 */ {ops:[SAY('The Evidence Engine reads asked and unasked questions alike.'),CALL(fillGhosts),SHOW('b1ghosts')]},
+
+    /* B2 s1 */ {ops:[BEAT(2),SAY('A blank page and a real choice.'),SHOW('edtitle',300),SHOW('choice')]},
+    /* B2 s2 */ {ops:[SAY('Either path is fine. The choice itself is read.'),CALL(function(){choiceState='canvas'; updateCue();})]},
+
+    /* B3 s1 */ {ops:[CALL(function(){showBeat(3); clearZone();}),{go:function(n){say(session.opening?'A structured draft, not yet shaped by your opening.':'A structured draft, generic where the brief was thin.'); var t=setTimeout(n,320); cancelFns.push(function(){clearTimeout(t)})},snap:function(){sayNow(session.opening?'A structured draft, not yet shaped by your opening.':'A structured draft, generic where the brief was thin.')}},SHOW('secMarket',420),SHOW('secBuyer',420),SHOW('secPricing',420),W(500),SAY('Confidence is not evidence. The reading continues.'),SHOW('secChannel',420),SHOW('secYear',420)]},
+
+    /* B4 s1 */ {ops:[CALL(function(){showBeat(4); clearZone();}),SAY('Now the work. The Evidence Engine reads every move.'),CALL(quietAll),SCROLL('secPricing'),W(900),SAY('Discern. A confident claim marked for questioning.'),ACT('hl2',function(){hlOn('hl2')}),CHIP('Discern','Perception'),ACTHIDE()]},
+    /* B4 s2 */ {ops:[SHOW('thread',300),SCROLL('thread'),CALL(function(){
+                   arm('research','rin','rinrow','What actually happens to seats?',1,researchSend);
+                 })]},
+    /* B4 s3 */ {ops:[SHOW('chal',250),SCROLL('chal'),CALL(function(){
+                   arm('challenge','cin','cinrow','Defend $59 per seat.',1,challengeSend);
+                 })]},
+    /* B4 s4 */ {ops:[SAY('Correct. The plan rebuilt around what the evidence said.'),ACT('btnRestr',restructure),W(450),CHIP('Correct','Creation'),SCROLL('secPricing'),ACTHIDE()]},
+    /* B4 s5 */ {ops:[SHOW('commit',350),SCROLL('commit'),CALL(function(){choiceState='commit'; updateCue();})]},
+    /* B4 s6 */ {ops:[SAY('The plan ships. The reading is already done.'),SHOW('sendrow'),SCROLL('sendrow'),W(300),ACT('btnSend',foldSheet),W(560),CALL(function(){$('sheet').style.display='none'}),CALL(function(){$('afterline').classList.add('in')}),ACTHIDE()]},
+
+    /* B5 s1 */ {ops:[BEAT(5),CALL(fillMirror),SAY('Nothing was submitted for judgment. Your work was read.'),SHOW('b5h',320),SHOW('trace')]},
+    /* B5 s2 */ {ops:[SAY('Every reading traces to a moment you can replay.'),ACT('tn0',null),SHOW('b5mom',300),SHOW('b5sharp'),ACTHIDE()]},
+    /* B5 s3 */ {ops:[SAY('Evidence-confidence grows with observations. Decision holds one.'),SCROLL('b5map')].concat(
+                   range(8).map(function(ix){return SHOW('t'+ix,140)}),
+                   [SHOW('b5cap')]
+                 )},
+    /* B5 s4 */ {ops:[SAY('What went unchallenged is part of the reading.'),SHOW('b5trust'),SCROLL('b5trust')]},
+    /* B5 s5 */ {ops:[SAY('The ceiling was Standard. Demonstrated capability kept coaching light.'),SHOW('b5coach'),SCROLL('b5coach')]},
+    /* B5 s6 */ {ops:[SAY('One capability to stretch, named from evidence, not opinion.'),SHOW('b5stretch'),SCROLL('b5stretch')]},
+
+    /* B6 s1 */ {ops:[BEAT(6),CALL(function(){$('ph1').classList.add('on')}),SAY('The same engine reads any form the work takes.'),SHOW('ph1line',300)].concat(
+                   range(5).map(function(ix){return SHOW('f'+ix,160)})
+                 )},
+    /* B6 s2 */ {ops:[CALL(function(){$('ph1').classList.remove('on'); $('ph2').classList.add('on')}),SAY('Different work, same reading. The map fills over a career.'),SHOW('csovl',260),SHOW('ph2line',300)].concat(
+                   range(8).map(function(ix){return SHOW('m'+ix,120)})
+                 )},
+    /* B6 s3 */ {ops:[CALL(function(){$('ph2').classList.remove('on'); $('close').classList.add('on')}),SAY('The work was the evidence. It always was.'),SHOW('clwm',400),SHOW('clline',500),SHOW('clreplay'),W(2400),CALL(function(){$('voice').style.opacity='0'; ended=true; updateCue()})]},
+  ];
+
+  document.querySelectorAll('#b5map .tile').forEach(function(t,ix){t.id='t'+ix});
+  document.querySelectorAll('.forms .form').forEach(function(f,ix){f.id='f'+ix});
+  document.querySelectorAll('#ph2 .tile').forEach(function(m,ix){m.id='m'+ix});
+
+  /* ---------- cue ---------- */
+  function updateCue(){
+    var c=$('cue');
+    if(ended||stepIdx<0){c.style.opacity='0'; return;}
+    if(lock||busy){c.style.opacity='0'; return;}
+    if(armed){c.textContent='type and press enter, or click to continue'; c.style.opacity='1'; return;}
+    if(stepIdx<=2){c.textContent='watch · click to continue'; c.style.opacity='1'; return;}
+    if(choiceState==='canvas'||choiceState==='commit'){c.textContent='choose, or click to continue'; c.style.opacity='1'; return;}
+    if(choiceState==='bringin'){c.textContent='write, then bring in a draft'; c.style.opacity='1'; return;}
+    c.textContent='continue'; c.style.opacity='1';
+  }
+
+  /* ---------- advance ---------- */
+  function nextStep(){
+    if(stepIdx>=steps.length-1)return;
+    stepIdx++;
+    runOps(steps[stepIdx].ops);
+  }
+  function advance(ev){
+    if(ended||lock)return;
+    if(busy){if(runOps.ff)runOps.ff(); return;}
+    if((choiceState==='canvas'||choiceState==='commit')&&ev&&ev.target&&ev.target.closest){
+      if(ev.target.closest('#commit')||ev.target.closest('#choice'))return;
+    }
+    if(choiceState==='canvas'){
+      var self={done:false};
+      busy=true; updateCue();
+      var op=ACT('btnGen',function(){resolveCanvas('generate')});
+      op.go(function(){actor.style.opacity='0'; busy=false; updateCue();});
+      return;
+    }
+    if(choiceState==='bringin'){doBringIn(); return;}
+    if(choiceState==='commit'){
+      busy=true; updateCue();
+      var op2=ACT('btnCommit',function(){resolveCommit('commit')});
+      op2.go(function(){actor.style.opacity='0'; busy=false; updateCue();});
+      return;
+    }
+    if(armed){
+      if(armed.turns===0){autoSend();}
+      else{disarm(); nextStep();}
+      return;
+    }
+    nextStep();
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('click',function(e){
+    if(e.target.closest('#veil')){
+      if(!e.target.closest('#panelC'))$('veil').classList.remove('on');
+      return;
+    }
+    if(e.target.closest('.sendbtn')){
+      var sb=e.target.closest('.sendbtn');
+      if(sb.id==='btnBring'){doBringIn(); return;}
+      if(sb.id==='keyClear')return;
+      if(armed&&!lock)autoSend();
+      return;
+    }
+    if(e.target.closest('input')||e.target.closest('[contenteditable]'))return;
+    if(e.target.closest('.real')){
+      var b=e.target.closest('.real');
+      if(b.id==='liveBtn'){$('veil').classList.add('on'); syncKeyUI(); return;}
+      if(b.id==='btnReplay'){location.reload(); return;}
+      if(b.id==='btnWrite'){if(choiceState==='canvas'){resolveCanvas('write');}else{advance();} return;}
+      if(b.id==='btnGen'){if(choiceState==='canvas'){resolveCanvas('generate');}else{advance();} return;}
+      if(b.id==='btnCommit'){if(choiceState==='commit'){resolveCommit('commit');}else{advance();} return;}
+      if(b.id==='btnHold'){if(choiceState==='commit'){resolveCommit('hold');}else{advance();} return;}
+      return;
+    }
+    advance(e);
+  });
+
+  document.addEventListener('keydown',function(e){
+    var inInput=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.isContentEditable);
+    var anonKey=(!e.key&&!e.code&&!e.keyCode&&!e.which);
+    if($('veil').classList.contains('on')){
+      if(e.key==='Escape')$('veil').classList.remove('on');
+      if((e.key==='Enter'||anonKey)&&document.activeElement===$('keyIn'))saveKey();
+      return;
+    }
+    if(e.key==='Enter'||anonKey){
+      if(document.activeElement===$('we')){e.preventDefault(); doBringIn(); return;}
+      e.preventDefault(); advance(); return;
+    }
+    if(e.key==='ArrowRight'){e.preventDefault(); advance(); return;}
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('input.line'),function(inp){
+    if(inp.id==='keyIn')return;
+    inp.addEventListener('keydown',function(e){
+      var anonKey=(!e.key&&!e.code&&!e.keyCode&&!e.which);
+      if(e.key==='Enter'||e.keyCode===13||e.which===13||e.code==='Enter'||e.code==='NumpadEnter'||anonKey){
+        e.preventDefault(); e.stopPropagation();
+        if(armed&&!lock){autoSend();}else{advance();}
+      }
+    });
+  });
+
+  /* ---------- connect panel ---------- */
+  function syncKeyUI(){
+    $('keyStatus').textContent=apiKey?'live':'cold';
+    $('liveBtn').classList.toggle('on',!!apiKey);
+    $('keyIn').value='';
+    $('keyIn').placeholder=apiKey?'connected':'sk-ant-...';
+  }
+  function saveKey(){
+    var v=$('keyIn').value.trim();
+    if(v){
+      apiKey=v;
+      try{localStorage.setItem('evolv-key',v);}catch(e){}
+    }
+    syncKeyUI();
+    $('veil').classList.remove('on');
+  }
+  $('keySave').addEventListener('click',function(e){e.stopPropagation(); saveKey();});
+  $('keyClear').addEventListener('click',function(e){
+    e.stopPropagation();
+    apiKey='';
+    try{localStorage.removeItem('evolv-key');}catch(e2){}
+    history={brief:[],research:[],challenge:[]};
+    syncKeyUI();
+  });
+  syncKeyUI();
+
+  updateCue();
+})();
+</script>
+</body>
+</html>
