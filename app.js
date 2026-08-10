@@ -137,7 +137,7 @@ function renderPanel() {
 function renderEnterprisePanel(body) {
   const w = WORLDS.enterprise
   body.innerHTML = ''
-  body.appendChild(el('div', 'a', `<span style="color:var(--faint)">Theo Marchetti's record · seeded example. Amara's live record stays in her seat.</span>`))
+  body.appendChild(el('div', 'a', `<span style="color:var(--faint)">Theo Marchetti's record · seeded example. Amara's record appears only where she has shared it.</span>`))
 
   const b1 = el('div', 'qblock')
   b1.innerHTML = `<div class="q">${FOUR_QUESTIONS[0]}</div>
@@ -316,16 +316,16 @@ async function doUpdate(info) {
       <button class="btn small" data-a="discard">Keep mine</button></div>
     <div class="whyrow"><input class="why" placeholder="Why are you keeping yours? One line."></div>`
   block.appendChild(par)
-  // The position passage is right, so its rewrite comes back competent and
-  // flat, which is what makes refusing it honest. A flawed passage gets a
-  // corrective rewrite instead, so the beat works whichever passage is chosen.
-  const positional = info.blockId === 'position' || info.blockId === 'audience'
-  const fallback = positional
-    ? 'Kado makes charging time productive and pleasant. In the 25 minutes your car needs, enjoy well made coffee in a thoughtfully designed space. Fast charging, without the wasted wait.'
-    : 'Put the corners where the cars sleep on the street. Of 1,200 pilot sessions, 996 were neighbors within 3 miles. The interchange can wait, and saying so costs the founder her highway story.'
-  const instruction = positional
-    ? 'Tighten this passage for an executive reader.'
-    : 'Make it correct against the evidence, and name the cost of the position.'
+  // Only the channel passage is wrong, so only it gets a corrective rewrite.
+  // Everything else comes back competent and flat, which is what makes
+  // refusing the rewrite of a passage that was already right honest.
+  const flawed = info.blockId === 'channel'
+  const fallback = flawed
+    ? 'Put the corners where the cars sleep on the street. Of 1,200 pilot sessions, 996 came from within 3 miles. The interchange can wait, and saying so costs the founder her highway story.'
+    : 'Kado makes charging time productive and pleasant. In the 25 minutes your car needs, enjoy well made coffee in a thoughtfully designed space. Fast charging, without the wasted wait.'
+  const instruction = flawed
+    ? 'Make it correct against the evidence, and name the cost of the position.'
+    : 'Tighten this passage for an executive reader.'
   const text = await API.rewrite(info.text, instruction, fallback)
   par.querySelector('.text').textContent = text
   par.querySelector('.acts').classList.remove('hide')
@@ -638,7 +638,7 @@ const stages = [
         <span class="ovl f" style="display:block;margin-bottom:14px">From a student's launch concept for Kado, a cafe where your electric car charges at the corner while you get the half hour back</span>
         <div class="claimbad">Put the first corners on the road. Our customer is the driver between cities.</div>
         <div class="against" style="grid-template-columns:1fr">
-          <div><div class="k">996 of 1,200</div><div class="v">pilot sessions at the corner were drivers who live within 3 miles. 36 were far from home.</div></div>
+          <div><div class="k">996 of 1,200</div><div class="v">pilot sessions came from drivers who live within 3 miles of the corner. 36 came from more than 40 miles away.</div></div>
         </div>
         <p class="lede" style="margin-top:22px;text-align:left">The paragraph is fluent, confident, and wrong. Amara Osei wrote it on a Tuesday. Nobody marked it, because nobody was assessing her. She caught it herself, and a record saw how.</p>
       </div></div>`
@@ -735,26 +735,38 @@ const stages = [
       const missed = S.prediction.filter(p => !observed.includes(p))
       const unexpected = observed.filter(o => !S.prediction.includes(o))
       const nm = id => DOMAINS.find(d => d.id === id)?.name || id
+      const worked = observed.length > 0
+      // With no work performed, the prediction is unresolved, never lost.
+      // A read back that infers from absence would break its own guardrail.
+      const soText = worked
+        ? `${hits.length} of ${S.prediction.length || 0} predictions held.
+            ${missed.length ? `She expected ${missed.map(nm).join(' and ')} and the work did not show it. ` : ''}
+            ${unexpected.length ? `She did not expect ${unexpected.map(nm).join(' and ')}, and that is where the evidence actually is.` : ''}`
+        : 'No work was performed this session, so the prediction is unresolved rather than lost. A domain with no evidence stays dark, and so does a forecast.'
+      if (!worked) setStrip('The read back is waiting on work.',
+        'Nothing was performed this session, so nothing is claimed. The questions stay open.')
       c.innerHTML = `<div class="col fade" style="max-width:960px">
-        <h2 class="display">How she worked.</h2>
-        <p class="lede" style="margin-top:8px">Nothing was submitted. Nothing was reviewed. This is a read of work that was going to happen anyway.</p>
+        <h2 class="display">${worked ? 'How she worked.' : 'Nothing to read, yet.'}</h2>
+        <p class="lede" style="margin-top:8px">${worked
+          ? 'Nothing was submitted. Nothing was reviewed. This is a read of work that was going to happen anyway.'
+          : 'The record only speaks when there is work to point at. Go back a screen and do any of it: ask, rewrite, decide, or picture.'}</p>
         <div class="fourcol">
-          <div class="qc"><div class="qq">${FOUR_QUESTIONS[0]}</div><div class="aa">${observed.length ? q1Answer(counts) : 'Nothing yet.'}</div></div>
-          <div class="qc"><div class="qq">${FOUR_QUESTIONS[1]}</div><div class="aa">${observed.length ? observed.map(nm).join(', ') : 'None observed.'}</div></div>
-          <div class="qc"><div class="qq">${FOUR_QUESTIONS[2]}</div><div class="aa">${S.record.observations.length} observation${S.record.observations.length === 1 ? '' : 's'}, each pointing at a passage you can read.</div></div>
+          <div class="qc"><div class="qq">${FOUR_QUESTIONS[0]}</div><div class="aa">${worked ? q1Answer(counts) : 'Nothing yet.'}</div></div>
+          <div class="qc"><div class="qq">${FOUR_QUESTIONS[1]}</div><div class="aa">${worked ? observed.map(nm).join(', ') : 'None observed.'}</div></div>
+          <div class="qc"><div class="qq">${FOUR_QUESTIONS[2]}</div><div class="aa">${worked
+            ? `${S.record.observations.length} observation${S.record.observations.length === 1 ? '' : 's'}, each pointing at a passage you can read.`
+            : 'No observations. Nothing is claimed.'}</div></div>
           <div class="qc"><div class="qq">${FOUR_QUESTIONS[3]}</div><div class="aa">The same reading runs on the next piece of real work, and the one after.</div></div>
         </div>
         <div class="predict">
           <div class="pc"><span class="ovl">She predicted</span>
-            ${S.prediction.length ? S.prediction.map(p => `<div class="row2 ${observed.includes(p) ? 'hit' : 'miss'}"><span class="mark">${observed.includes(p) ? '✓' : '·'}</span>${nm(p)}</div>`).join('') : '<div class="row2">Nothing predicted.</div>'}
+            ${S.prediction.length ? S.prediction.map(p => `<div class="row2 ${observed.includes(p) ? 'hit' : (worked ? 'miss' : '')}"><span class="mark">${observed.includes(p) ? '✓' : '·'}</span>${nm(p)}</div>`).join('') : '<div class="row2">Nothing predicted.</div>'}
           </div>
           <div class="pc"><span class="ovl">The work showed</span>
             ${observed.length ? observed.map(o => `<div class="row2 ${S.prediction.includes(o) ? 'hit' : 'miss'}"><span class="mark">${S.prediction.includes(o) ? '✓' : '+'}</span>${nm(o)}</div>`).join('') : '<div class="row2">Nothing observed.</div>'}
           </div>
           <div class="pc"><span class="ovl">So</span>
-            <div class="aa" style="font-size:13.5px;line-height:1.55">${hits.length} of ${S.prediction.length || 0} predictions held.
-            ${missed.length ? `She expected ${missed.map(nm).join(' and ')} and the work did not show it. ` : ''}
-            ${unexpected.length ? `She did not expect ${unexpected.map(nm).join(' and ')}, and that is where the evidence actually is.` : ''}</div>
+            <div class="aa" style="font-size:13.5px;line-height:1.55">${soText}</div>
           </div>
         </div>
         <p class="lede" style="margin-top:22px">${GUARDRAILS[0]} ${GUARDRAILS[2]}</p>
@@ -802,7 +814,7 @@ const stages = [
     },
   },
   { // 7. the crossing
-    seat: ['evaluator', 'Manager view', 'Priya Raman', 'Halden Atelier · Brand and Go-to-Market'],
+    seat: ['evaluator', 'Manager view', 'Priya Raman', 'Kado · Brand and Sites'],
     what: 'Same engine. Different building.',
     why: 'The middle did not move. Only the application layer around it changed.',
     label: 'The crossing',
@@ -837,7 +849,7 @@ const stages = [
     },
   },
   { // 8. capability management
-    seat: ['evaluator', 'Manager view', 'Priya Raman', 'Halden Atelier · Brand and Go-to-Market'],
+    seat: ['evaluator', 'Manager view', 'Priya Raman', 'Kado · Brand and Sites'],
     what: 'One record per person. The work changes, not the people.',
     why: 'This is the layer the board deck calls Capability Management.',
     label: 'At scale',

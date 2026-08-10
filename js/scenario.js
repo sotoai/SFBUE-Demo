@@ -52,7 +52,7 @@ export const PRODUCT = {
   maker: 'One corner, Alder Street, Oakland',
   what: 'A cafe where you plug your electric car in at the corner and get a good half hour inside while it charges. Open six months. The document decides where corners two and three go.',
   facts: [
-    { k: '996 of 1,200', v: 'pilot sessions were drivers who live within 3 miles of the corner.' },
+    { k: '996 of 1,200', v: 'pilot sessions came from drivers who live within 3 miles of the corner.' },
     { k: '36 of 1,200', v: 'sessions began more than 40 miles from home. The road trip is 3 percent of the pilot.' },
     { k: '150 of 200', v: 'regulars cannot plug in where they park at night. Their car sleeps on the street.' },
     { k: '25 min / 31 min', v: 'a charge to 80 percent takes 25 minutes. The median stay is 31. People finish their coffee.' },
