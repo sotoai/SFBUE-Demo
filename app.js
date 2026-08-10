@@ -7,6 +7,7 @@
 
 import { DOMAINS, WORLDS, PRODUCT, DRAFT, EVIDENCE_PACK, IMAGE_MOMENTS, BLOCK_TYPES, IMAGE_ACTIONS } from './js/scenario.js'
 import { createRecord, bandFor, domainCounts, STRUCTURAL, observe, capture, dispute, relativeTime, GUARDRAILS } from './js/engine.js'
+import { deriveInsights } from './js/insights.js'
 import * as API from './js/api.js'
 
 const $ = id => document.getElementById(id)
@@ -28,6 +29,20 @@ const S = {
    typing after reading the evidence that contradicts you is Reasoning. */
 const evidenceOpened = new Set()
 const revisedBlocks = new Set()
+
+/* Provenance: which sections began machine drafted, and what has touched
+   them since. This is what lets a development insight say, honestly, that a
+   drafted section stands untested: a fact about the document, decidable
+   without a model, never an inference about the person. */
+const PROV = new Map()
+function touchBlock(blockId, how) {
+  const p = PROV.get(blockId)
+  if (p) p.touched.add(how)
+}
+
+/* Challenges pressed in research threads, for the insight that reads them. */
+let threadChallenges = 0
+const challengeTexts = []
 
 function integrations() {
   $('intLang').className = 'integration' + (API.state.language ? '' : ' off')
@@ -99,12 +114,65 @@ function observationCard(o, { disputable }) {
   return n
 }
 
-/* The student's sidebar. Minimal: what lit, why, and the standing right to
-   disagree. Dark domains are one quiet line, not eight rows of absence. */
+/* Everything the insight rules read, assembled in one place. */
+function buildInsightCtx() {
+  const counts = domainCounts(S.record)
+  const drafted = [...PROV.entries()]
+    .filter(([, p]) => p.origin === 'drafted')
+    .map(([id, p]) => ({ id, heading: p.heading, untested: p.touched.size === 0 && !evidenceOpened.has(id) }))
+  return {
+    counts,
+    observations: S.record.observations,
+    challenges: {
+      refusals: counts.growth || 0,
+      disputes: S.record.observations.filter(o => o.disputed).length,
+      thread: threadChallenges,
+    },
+    challengeTexts: challengeTexts.slice(-3),
+    drafted,
+    packsOpened: openedPacks.size,
+    working: S.record.observations.length > 0 || S.record.captured.length > 1
+      || [...PROV.values()].some(p => p.touched.size > 0),
+    name: WORLDS.university.learner.name.split(' ')[0],
+  }
+}
+
+/* Insight cards. The learner gets the headline and can open the evidence;
+   the teacher gets everything, plus what to do with it. */
+function insightCards(container, insights, { seat }) {
+  if (!insights.length) {
+    container.appendChild(el('div', 'a', '<span style="color:var(--faint)">Insights appear as the work does.</span>'))
+    return
+  }
+  for (const ins of insights) {
+    const v = seat === 'teacher' ? ins.teacher : ins.learner
+    const card = el('div', 'insight ' + ins.kind + (seat === 'teacher' ? ' open' : ''))
+    card.innerHTML = `<div class="ihead">${esc(v.head)}</div>
+      <div class="ibody">
+        <div class="itext">${esc(v.body)}</div>
+        ${ins.evidence.map(e => `<div class="iev"><span class="q">${esc(e.quote)}</span><span class="n">${esc(e.note)}</span></div>`).join('')}
+        ${seat === 'teacher' && v.guidance ? `<div class="iguide"><span class="ovl f">What to do with this</span>${esc(v.guidance)}</div>` : ''}
+      </div>`
+    if (seat !== 'teacher') {
+      card.querySelector('.ihead').addEventListener('click', () => card.classList.toggle('open'))
+    }
+    container.appendChild(card)
+  }
+}
+
+/* The student's sidebar. Insights first, in a summary voice they can open;
+   the record itself beneath. Dark domains are one quiet line, not eight
+   rows of absence. */
 function renderSidebar() {
   const body = $('sideBody')
   const counts = domainCounts(S.record)
   body.innerHTML = ''
+
+  const insWrap = el('div', 'insights')
+  insightCards(insWrap, deriveInsights(buildInsightCtx()), { seat: 'learner' })
+  body.appendChild(insWrap)
+
+  body.appendChild(el('div', 'sidesplit', 'The record behind it'))
   body.appendChild(domainRows(counts, { compressDark: true }))
 
   const obsWrap = el('div', 'obslist')
@@ -137,6 +205,12 @@ function renderTeacher() {
   const counts = domainCounts(S.record)
   t.innerHTML = ''
   t.appendChild(el('div', 'teach-line', esc(recordSummary(counts))))
+
+  const insWrap = el('div', 'insights')
+  insightCards(insWrap, deriveInsights(buildInsightCtx()), { seat: 'teacher' })
+  t.appendChild(insWrap)
+
+  t.appendChild(el('div', 'sidesplit', 'The record behind it'))
   t.appendChild(domainRows(counts, { compressDark: false }))
   const obsWrap = el('div', 'obslist')
   for (const o of S.record.observations.slice().reverse()) {
@@ -282,6 +356,10 @@ function renderBegin() {
 
 function beginWork(mode) {
   S.started = mode
+  for (const b of DRAFT) {
+    if (b.id === 'first-year') continue
+    PROV.set(b.id, { origin: mode === 'foundations' ? 'drafted' : 'blank', heading: b.heading, touched: new Set() })
+  }
   capture(S.record, mode === 'foundations' ? 'Began from drafted foundations' : 'Began from a blank page')
   renderRecord()
   $('sideSub').textContent = 'Fills in as you work. Nothing else is collected.'
@@ -366,7 +444,10 @@ document.addEventListener('focusout', e => {
   const hadText = editSnapshot.text.trim().length > 0
   const id = p.dataset.block
   editSnapshot = null
-  if (!changed || !hadText || revisedBlocks.has(id)) return
+  if (!changed) return
+  touchBlock(id, 'revised')
+  renderRecord()
+  if (!hadText || revisedBlocks.has(id)) return
   if (evidenceOpened.has(id)) {
     revisedBlocks.add(id)
     record(STRUCTURAL.revisedAfterEvidence({ evidenceOpened: true }),
@@ -433,9 +514,11 @@ async function doAsk(info, q) {
   const ans = await API.askAbout(info.text, q, fallback)
   note.querySelector('.atext').textContent = ans
   const contradicts = CONTRADICTS.test(ans)
+  touchBlock(info.blockId, 'asked')
   record(STRUCTURAL.openedContradictingSource({ contradicts }),
     { quote: info.text.slice(0, 120), section: info.blockId })
   if (contradicts) evidenceOpened.add(info.blockId)
+  renderRecord()
   S.busy = false
 }
 
@@ -467,6 +550,7 @@ async function doUpdate(info) {
     if (a === 'keep') {
       info.p.textContent = info.p.textContent.replace(info.text, text)
       par.remove()
+      touchBlock(info.blockId, 'updated')
       capture(S.record, 'Accepted a rewrite unchanged')
       renderRecord()
     }
@@ -479,6 +563,7 @@ async function doUpdate(info) {
     const reason = par.querySelector('.why').value.trim()
     if (!reason) return
     par.remove()
+    touchBlock(info.blockId, 'updated')
     record(STRUCTURAL.refusedRewrite({ reason }), { quote: reason, section: info.blockId })
   }
   par.querySelector('.why').addEventListener('keydown', ev => { if (ev.key === 'Enter') commitWhy() })
@@ -524,6 +609,7 @@ async function doTag(info) {
   m.prepend(note)
   const thread = { passage: info.text, blockId: info.blockId, p: info.p, turns: [] }
 
+  touchBlock(info.blockId, 'researched')
   capture(S.record, 'Tagged a passage for research')
   renderRecord()
 
@@ -552,6 +638,9 @@ async function doTag(info) {
     holding.remove()
     addTurn(note, thread, 'research', ans)
     if (CONTRADICTS.test(ans)) evidenceOpened.add(thread.blockId)
+    threadChallenges += 1
+    challengeTexts.push(q)
+    renderRecord()
     S.busy = false
   })
 
@@ -592,6 +681,7 @@ function proposeRevision(p, blockId, text, label) {
     if (a === 'keep') {
       p.textContent = text
       par.remove()
+      touchBlock(blockId, 'updated')
       capture(S.record, 'Integrated a research revision unchanged')
       renderRecord()
     }
