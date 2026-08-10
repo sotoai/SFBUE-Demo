@@ -62,7 +62,7 @@ export const STRUCTURAL = {
   /* Opening a source is checking, not reading. It is only a signal when the
      source contradicts the passage it was opened from. */
   openedContradictingSource: ({ contradicts }) => contradicts
-    ? { signal: 'Test', domainId: 'execution', because: 'Opened a source that contradicts the passage it was opened from.' }
+    ? { signal: 'Check', domainId: 'execution', because: 'Opened a source that contradicts the passage it was opened from.' }
     : null,
 
   /* A commitment is only a decision when a cost is named with it. */
@@ -137,12 +137,13 @@ export function dispute(record, observationId, reason) {
   return o
 }
 
-/* Relative, honest time. Never a fabricated clock. */
+/* Honest time: minutes into the session, which is what elapsed measures.
+   "3 min ago" would freeze and drift into a lie on every later render. */
 export function relativeTime(ms) {
   const s = Math.round(ms / 1000)
-  if (s < 60) return `${s}s ago`
+  if (s < 60) return `at ${s}s`
   const m = Math.round(s / 60)
-  return `${m} min ago`
+  return `at ${m} min`
 }
 
 /* What the record can and cannot say. Rendered verbatim in the interface. */

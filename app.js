@@ -1,4 +1,4 @@
-import { DOMAINS, WORLDS, PRODUCT, DRAFT, EVIDENCE_PACK, IMAGE_MOMENTS, FOUR_QUESTIONS, BLOCK_TYPES, IMAGE_ACTIONS } from './js/scenario.js'
+import { DOMAINS, WORLDS, PRODUCT, DRAFT, EVIDENCE_PACK, IMAGE_MOMENTS, FOUR_QUESTIONS, BLOCK_TYPES, IMAGE_ACTIONS, SEEDED_THEO } from './js/scenario.js'
 import { createRecord, bandFor, domainCounts, STRUCTURAL, observe, capture, dispute, relativeTime, GUARDRAILS } from './js/engine.js'
 import * as API from './js/api.js'
 
@@ -48,7 +48,8 @@ function setSeat(kind, who, name, place) {
 function setStrip(what, why, stageLabel) {
   $('stripWhat').textContent = what
   $('stripWhy').textContent = why || ''
-  $('stripStage').textContent = stageLabel || ''
+  // Interactions narrate without a stage label; the position marker survives.
+  if (stageLabel !== undefined) $('stripStage').textContent = stageLabel
 }
 function integrations() {
   $('intLang').className = 'integration' + (API.state.language ? '' : ' off')
@@ -58,8 +59,23 @@ function integrations() {
 }
 
 /* ---------- panel: the evaluator view, whole then narrowed ---------- */
+
+/* The first question's answer is derived from what actually happened, never
+   asserted. An image-only session must not claim a revision that never was. */
+function q1Answer(counts) {
+  const acts = []
+  if (counts.reasoning) acts.push('changed her mind where the evidence demanded it')
+  if (counts.growth) acts.push('held her ground where it did not')
+  if (counts.decision) acts.push('named what the call costs')
+  if (acts.length) return 'She ' + acts.slice(0, 2).join(', and ') + '.'
+  if (counts.execution) return 'She checked her most confident claim against the log.'
+  if (counts.creation) return 'She briefed an image to carry a specific point.'
+  return 'The document was not checked against its evidence this session.'
+}
+
 function renderPanel() {
   const body = $('panelBody')
+  if (S.world === 'enterprise') { renderEnterprisePanel(body); return }
   const counts = domainCounts(S.record)
   const lit = DOMAINS.filter(d => counts[d.id] > 0)
   const w = WORLDS[S.world]
@@ -69,9 +85,7 @@ function renderPanel() {
   const working = S.stage === 4
   const b1 = el('div', 'qblock' + (working ? ' rest' : ''))
   b1.innerHTML = `<div class="q">${FOUR_QUESTIONS[0]}</div>
-    <div class="a">${lit.length
-      ? 'She moved the document off its first instinct, and said what that cost.'
-      : 'Nothing yet. She has not started.'}</div>`
+    <div class="a">${lit.length ? q1Answer(counts) : 'Nothing yet. She has not started.'}</div>`
   body.appendChild(b1)
 
   const b2 = el('div', 'qblock')
@@ -117,6 +131,54 @@ function renderPanel() {
   $('panelTitle').textContent = w.evaluator.name
 }
 
+/* The enterprise seat never shows Amara's live record under Priya's name.
+   A student's record does not leak into a company because the demo moved on;
+   that would perform the exact thing the consent screen just disavowed. */
+function renderEnterprisePanel(body) {
+  const w = WORLDS.enterprise
+  body.innerHTML = ''
+  body.appendChild(el('div', 'a', `<span style="color:var(--faint)">Theo Marchetti's record · seeded example. Amara's live record stays in her seat.</span>`))
+
+  const b1 = el('div', 'qblock')
+  b1.innerHTML = `<div class="q">${FOUR_QUESTIONS[0]}</div>
+    <div class="a">He committed the corner two call and wrote its cost under it.</div>`
+  body.appendChild(b1)
+
+  const marks = { perception: 1, systems: 1, reasoning: 0, execution: 1, growth: 0, decision: 1, creation: 0, human: 1 }
+  const b2 = el('div', 'qblock')
+  b2.innerHTML = `<div class="q">${FOUR_QUESTIONS[1]}</div>`
+  for (const d of DOMAINS) {
+    const n = marks[d.id] || 0
+    const row = el('div', 'drow' + (n > 0 ? ' lit' : ''))
+    row.dataset.domain = d.id
+    const m = [0, 1, 2, 3].map(i => `<i class="${i < Math.min(n, 4) ? 'on' : ''}"></i>`).join('')
+    row.innerHTML = `<span class="nm">${d.name}</span><span class="ladder">${m}</span><span class="band">${n ? bandFor(n) : 'no evidence'}</span>`
+    b2.appendChild(row)
+  }
+  body.appendChild(b2)
+
+  const b3 = el('div', 'qblock')
+  b3.innerHTML = `<div class="q">${FOUR_QUESTIONS[2]}</div>`
+  for (const o of SEEDED_THEO) {
+    const n = el('div', 'obs')
+    n.innerHTML = `<div class="sig">${o.signal} · ${o.domainName}</div>
+      <div class="because">${esc(o.because)}</div>
+      <div class="quote">${esc(o.quote)}</div>
+      <div class="meta"><span>${o.when}</span></div>`
+    b3.appendChild(n)
+  }
+  b3.appendChild(el('div', 'captured', 'Three more observations are in his record, each pointing at its passage there. Seeded for this demo.'))
+  body.appendChild(b3)
+
+  const b4 = el('div', 'qblock')
+  b4.innerHTML = `<div class="q">${FOUR_QUESTIONS[3]}</div>
+    <div class="a">The reading has run for seven months without a review cycle. The map on this screen is what a leader does with it.</div>`
+  body.appendChild(b4)
+
+  $('panelSeat').textContent = w.evaluatorSeat
+  $('panelTitle').textContent = w.evaluator.name
+}
+
 function flashDomain(domainId) {
   const row = $('panelBody')?.querySelector(`.drow[data-domain="${domainId}"]`)
   if (row) { row.classList.add('just'); setTimeout(() => row.classList.remove('just'), 1200) }
@@ -141,6 +203,37 @@ function addNote(kind, ovl, title, body) {
 
 /* ---------- the document editor ---------- */
 let selInfo = null
+
+/* Which blocks have had contradicting evidence surfaced against them, and
+   which have already been credited for a revision. Typing alone stays dark;
+   typing after reading the evidence that contradicts you is Reasoning, and
+   the distinction is the engine's honesty made visible. */
+const evidenceOpened = new Set()
+const revisedBlocks = new Set()
+let editSnapshot = null
+
+document.addEventListener('focusin', e => {
+  const p = asEl(e.target)?.closest('p.body')
+  if (p) editSnapshot = { blockId: p.dataset.block, text: p.textContent }
+})
+document.addEventListener('focusout', e => {
+  const p = asEl(e.target)?.closest('p.body')
+  if (!p || !editSnapshot || editSnapshot.blockId !== p.dataset.block) return
+  const changed = p.textContent.trim() !== editSnapshot.text.trim()
+  const id = p.dataset.block
+  editSnapshot = null
+  if (!changed || revisedBlocks.has(id)) return
+  if (evidenceOpened.has(id)) {
+    revisedBlocks.add(id)
+    record(STRUCTURAL.revisedAfterEvidence({ evidenceOpened: true }),
+      { quote: p.textContent.trim().slice(0, 120), section: id })
+    setStrip('She rewrote the passage after reading the evidence against it.',
+      'Typing alone would have stayed dark. Typing after opening the source that contradicts you is Reasoning.')
+  } else {
+    setStrip('The passage changed. Nothing lit.',
+      'Editing is not evidence of anything until the record can point at why.')
+  }
+})
 
 function renderDoc() {
   const c = $('center')
@@ -197,16 +290,18 @@ $('pill').addEventListener('click', async e => {
 
 /* Ask: a question about a passage. The answer is a source, not a verdict. */
 async function doAsk(info) {
-  const q = prompt('Ask about this passage:', 'Where does this number actually come from?')
+  const q = prompt('Ask about this passage:', 'Who is actually in the session log?')
   if (!q) return
   S.busy = true
   info.p.innerHTML = info.p.innerHTML.replace(esc(info.text), `<span class="asked">${esc(info.text)}</span>`)
   const note = addNote('q', 'Asked about a passage', q, null)
-  const fallback = 'The beta install log settles it. Across 71 installs, 71% arrived through an architect or a lighting designer and 4% came from a homeowner who found Solveil first. The install specification explains why: 140 mm of plenum depth and a hard wired driver mean the module goes in only while a ceiling is open, which is a construction decision, not a purchase.'
+  const fallback = 'The log is direct about it. Of 1,200 pilot sessions, 996 were drivers who live within 3 miles of the corner. 36 began more than 40 miles from home, 3 percent of the pilot. The regulars are neighbors: 150 of 200 cannot plug in where they park at night.'
   const ans = await API.askAbout(info.text, q, fallback)
   note.querySelector('.atext').textContent = ans
-  record(STRUCTURAL.openedContradictingSource({ contradicts: /71|4%|140|11 month|architect|specif/i.test(ans) }),
+  const contradicts = /996|1,?200|3 miles|3 percent|150|regular|neighbor/i.test(ans)
+  record(STRUCTURAL.openedContradictingSource({ contradicts }),
     { quote: info.text.slice(0, 120), section: info.blockId })
+  if (contradicts) evidenceOpened.add(info.blockId)
   S.busy = false
 }
 
@@ -221,8 +316,17 @@ async function doUpdate(info) {
       <button class="btn small" data-a="discard">Keep mine</button></div>
     <div class="whyrow"><input class="why" placeholder="Why are you keeping yours? One line."></div>`
   block.appendChild(par)
-  const fallback = 'Lead through architects and lighting designers. Solveil is specified 11 months before anyone lives in the room, and 71% of beta installs arrived that way against 4% direct. The cost is real: 38% margin instead of 61%, and first revenue arrives later.'
-  const text = await API.rewrite(info.text, 'Make it correct against the evidence, and name the cost of the position.', fallback)
+  // The position passage is right, so its rewrite comes back competent and
+  // flat, which is what makes refusing it honest. A flawed passage gets a
+  // corrective rewrite instead, so the beat works whichever passage is chosen.
+  const positional = info.blockId === 'position' || info.blockId === 'audience'
+  const fallback = positional
+    ? 'Kado makes charging time productive and pleasant. In the 25 minutes your car needs, enjoy well made coffee in a thoughtfully designed space. Fast charging, without the wasted wait.'
+    : 'Put the corners where the cars sleep on the street. Of 1,200 pilot sessions, 996 were neighbors within 3 miles. The interchange can wait, and saying so costs the founder her highway story.'
+  const instruction = positional
+    ? 'Tighten this passage for an executive reader.'
+    : 'Make it correct against the evidence, and name the cost of the position.'
+  const text = await API.rewrite(info.text, instruction, fallback)
   par.querySelector('.text').textContent = text
   par.querySelector('.acts').classList.remove('hide')
   S.busy = false
@@ -257,7 +361,7 @@ async function doUpdate(info) {
 async function doTag(info) {
   S.busy = true
   const note = addNote('', 'Tagged for research', info.text.slice(0, 90) + (info.text.length > 90 ? '…' : ''), null)
-  const fallback = 'Two things would settle it. The beta install log records the source of every one of the 71 projects. Halden\'s project calendar shows the median 11 months from a fixed ceiling plan to an energised panel.'
+  const fallback = 'Two sources bear on this. The corridor count confirms the multiple: the Route 92 parcel sees roughly forty times Alder Street\'s passing traffic, at 3.1 times the rent. The dwell note from the fast chargers on that corridor says what the traffic does: drivers wait in their cars with the doors closed. Traffic is not visits.'
   const leads = await API.researchLeads(info.text, fallback)
   note.querySelector('.atext').textContent = leads
   capture(S.record, 'Tagged a passage for research')
@@ -403,6 +507,7 @@ async function insertBlock(type, after) {
 
   if (type === 'source') {
     const pack = EVIDENCE_PACK[Math.floor(Math.random() * EVIDENCE_PACK.length)]
+    if (pack.id === 'log') evidenceOpened.add('channel')
     block.innerHTML = `<button class="gutter-add" title="Add below">+</button>
       <span class="ovl">Source</span>
       <div class="card" style="padding:16px 18px;margin-top:6px">
@@ -504,14 +609,14 @@ async function runImage(fig, ctx, promptText, bar) {
 function openModal(html) { $('modal').innerHTML = html; $('veil').classList.add('on') }
 $('veil').addEventListener('click', e => { if (e.target.id === 'veil') $('veil').classList.remove('on') })
 $('btnWhy').addEventListener('click', () => openModal(`
-  <h3>Is this a rubric?</h3>
-  <p>Yes, in one sense. There are named capabilities and there are levels of confidence. Three things are different, and they are the whole point.</p>
+  <h3>What is this?</h3>
+  <p>Evolv is a work surface that reads capability from ordinary work. A student is writing a launch concept for Kado, a cafe where electric cars charge at the corner. As she works, the panel on the left fills with evidence: which capabilities showed up, and where, each line pointing at a passage you can read.</p>
   <ul>
-    <li>The evidence is the work itself. Nothing was submitted and nothing was reviewed.</li>
+    <li>The evidence is the work itself. Nothing is submitted and nothing is reviewed.</li>
     <li>Every line points at a passage you can read. If it cannot, it does not appear.</li>
     <li>The person can dispute any line, and the dispute is kept permanently.</li>
   </ul>
-  <p>The rules that read the work are a hand authored first version. The record accumulating here is exactly the input that turns hand authored rules into validated ones. That is what Foundation and Validation means on the roadmap.</p>`))
+  <p>The rules that read the work are a hand authored first version. The record accumulating here is exactly the input that turns hand authored rules into validated ones. That is the work the board deck calls Capability Science.</p>`))
 $('btnTrace').addEventListener('click', () => {
   const rows = S.record.observations.map(o =>
     `${o.signal} · ${o.domainName} · ${Math.round(o.elapsed / 1000)}s · ${o.proposed ? 'proposed by model, accepted from closed list' : 'structural rule'}${o.disputed ? ' · DISPUTED' : ''}`).join('<br>')
@@ -523,20 +628,19 @@ $('btnTrace').addEventListener('click', () => {
 
 /* ---------- stages ---------- */
 const stages = [
-  { // 0. cold open: the payoff first
+  { // 0. cold open: the payoff first, with the world taught in one line above it
     seat: ['', 'Evolv', '', ''],
-    what: 'A person caught this. Nothing asked her to.',
-    why: 'Start at the end, then show how it was seen.',
+    what: 'She caught it herself, two days before the deadline.',
+    why: 'This demo starts at the end. Everything after shows how a record saw it happen.',
     label: 'Cold open',
     render(c) {
       c.innerHTML = `<div class="centerpiece"><div class="inner">
-        <div class="claimbad">Lead with direct to consumer. The story is emotional and emotional stories sell direct, gross margin is 61% against 38% through specification channels.</div>
-        <div class="against">
-          <div><div class="k">140 mm</div><div class="v">of empty ceiling depth required, so the module goes in only while a ceiling is open.</div></div>
-          <div><div class="k">11 months</div><div class="v">from a fixed ceiling plan to an energised panel.</div></div>
-          <div><div class="k">71% / 4%</div><div class="v">arrived through an architect. Four percent came direct.</div></div>
+        <span class="ovl f" style="display:block;margin-bottom:14px">From a student's launch concept for Kado, a cafe where your electric car charges at the corner while you get the half hour back</span>
+        <div class="claimbad">Put the first corners on the road. Our customer is the driver between cities.</div>
+        <div class="against" style="grid-template-columns:1fr">
+          <div><div class="k">996 of 1,200</div><div class="v">pilot sessions at the corner were drivers who live within 3 miles. 36 were far from home.</div></div>
         </div>
-        <p class="lede" style="margin-top:22px;text-align:left">The paragraph is fluent, confident, and wrong. Nobody marked it. Nobody was assessing her. She was writing a launch document on a Tuesday.</p>
+        <p class="lede" style="margin-top:22px;text-align:left">The paragraph is fluent, confident, and wrong. Amara Osei wrote it on a Tuesday. Nobody marked it, because nobody was assessing her. She caught it herself, and a record saw how.</p>
       </div></div>`
     },
   },
@@ -548,7 +652,7 @@ const stages = [
     render(c) {
       c.innerHTML = `<div class="centerpiece"><div class="inner" style="text-align:left">
         ${FOUR_QUESTIONS.map(q => `<div class="qline">${q}</div>`).join('')}
-        <p class="lede" style="margin-top:26px">Every one of these is asked about people, and answered with self report, a manager's memory, or an exam that measures something else.</p>
+        <p class="lede" style="margin-top:26px">Fluent work no longer proves anything on its own. Every one of these questions is asked about people, and answered with self report, a manager's memory, or an exam that measures something else.</p>
       </div></div>`
       const lines = c.querySelectorAll('.qline')
       lines.forEach((l, i) => setTimeout(() => l.classList.add('on'), 260 * i))
@@ -562,7 +666,7 @@ const stages = [
     render(c) {
       const w = WORLDS.university
       c.innerHTML = `<div class="col fade">
-        <span class="ovl">The brief she sends</span>
+        <span class="ovl">Five days earlier · The brief she sends</span>
         <div class="card brief-sheet">
           <div class="from"><span class="ovl f">To Amara Osei</span><span class="ovl f">Five working days</span></div>
           <div class="brief-body">${esc(w.brief)}</div>
@@ -606,7 +710,7 @@ const stages = [
     render(c) {
       c.innerHTML = `<div class="centerpiece"><div class="inner">
         <h2 class="display">She opens the document. Nothing else changes.</h2>
-        <p class="lede" style="margin-top:14px">No assessment starts. No timer runs. The panel on the left is the faculty view, narrowed. It will fill in as she works, from the work.</p>
+        <p class="lede" style="margin-top:14px">No assessment starts. No timer runs. The panel on the left is the faculty view, narrowed, and she sees the same panel her professor sees. It will fill in as she works, from the work.</p>
       </div></div>`
     },
   },
@@ -632,10 +736,10 @@ const stages = [
       const unexpected = observed.filter(o => !S.prediction.includes(o))
       const nm = id => DOMAINS.find(d => d.id === id)?.name || id
       c.innerHTML = `<div class="col fade" style="max-width:960px">
-        <h2 class="display">How you worked.</h2>
+        <h2 class="display">How she worked.</h2>
         <p class="lede" style="margin-top:8px">Nothing was submitted. Nothing was reviewed. This is a read of work that was going to happen anyway.</p>
         <div class="fourcol">
-          <div class="qc"><div class="qq">${FOUR_QUESTIONS[0]}</div><div class="aa">${observed.length ? 'She moved the document off its first instinct and named what that cost.' : 'Nothing yet.'}</div></div>
+          <div class="qc"><div class="qq">${FOUR_QUESTIONS[0]}</div><div class="aa">${observed.length ? q1Answer(counts) : 'Nothing yet.'}</div></div>
           <div class="qc"><div class="qq">${FOUR_QUESTIONS[1]}</div><div class="aa">${observed.length ? observed.map(nm).join(', ') : 'None observed.'}</div></div>
           <div class="qc"><div class="qq">${FOUR_QUESTIONS[2]}</div><div class="aa">${S.record.observations.length} observation${S.record.observations.length === 1 ? '' : 's'}, each pointing at a passage you can read.</div></div>
           <div class="qc"><div class="qq">${FOUR_QUESTIONS[3]}</div><div class="aa">The same reading runs on the next piece of real work, and the one after.</div></div>
@@ -688,7 +792,7 @@ const stages = [
       mine.addEventListener('click', e => {
         const id = e.target.closest('button')?.dataset.o
         if (!id) return
-        const reason = prompt('What does the record have wrong?', 'The rewrite was not about margin. I kept mine because the founder has to be brought along.')
+        const reason = prompt('What does the record have wrong? Her words, not a script.', '')
         if (!reason) return
         dispute(S.record, id, reason)
         stages[6].render($('center'))
@@ -740,11 +844,14 @@ const stages = [
     render(c) {
       const counts = domainCounts(S.record)
       const amara = DOMAINS.map(d => Math.min(counts[d.id] || 0, 3))
+      // Seeded marks add up: five observations for Theo, six for Dani, one
+      // mark per observation, exactly as domainCounts would count them.
       const team = [
-        { who: 'Theo Marchetti', marks: [2, 3, 2, 1, 0, 2, 1, 3], note: 'Five observations across seven months, seeded' },
-        { who: 'Amara Osei', marks: amara, note: 'This session, live' },
-        { who: 'Dani Okafor', marks: [1, 0, 2, 2, 1, 0, 0, 1], note: 'Two projects, seeded' },
+        { who: 'Theo Marchetti', marks: [1, 1, 0, 1, 0, 1, 0, 1], note: 'Five observations across seven months, seeded' },
+        { who: 'Amara Osei', marks: amara, note: 'This session, live · shared by her' },
+        { who: 'Dani Okafor', marks: [1, 0, 2, 2, 0, 0, 0, 1], note: 'Six observations across two projects, seeded' },
       ]
+      const growthLit = (counts.growth || 0) > 0
       c.innerHTML = `<div class="col fade" style="max-width:1000px">
         <h2 class="display">What a leader does with this.</h2>
         <p class="lede" style="margin-top:8px">Not a ranking. A map of where evidence exists and where it does not, so the next piece of work can be chosen deliberately.</p>
@@ -754,9 +861,10 @@ const stages = [
         </div>
         <div class="card" style="padding:22px 24px;margin-top:18px;border-left:2px solid var(--signal)">
           <span class="ovl">The move this suggests</span>
-          <p class="lede" style="margin-top:8px">Nobody here needs a class. Growth has almost no evidence anywhere on this team, because nothing they have shipped required anyone to reverse a position in public. If that capability matters for February, the work has to change, not the people. Give the Solveil channel decision to someone who will have to tell Ines she is wrong.</p>
+          <p class="lede" style="margin-top:8px">Nobody here needs a class. On the two seeded records, Growth is dark: nothing they have shipped required anyone to move or defend a position in public. ${growthLit
+            ? 'The one place it lit today was a student keeping her own words with the reason written down.'
+            : 'Nothing in this session lit it either.'} If that capability matters for corner two, the work has to change, not the people. Give the corner two site call to someone who will have to tell Elena the interchange is wrong.</p>
         </div>
-        <p class="lede" style="margin-top:20px">Eight domains. Neither seat produced all of them. The record did.</p>
       </div>`
     },
   },
@@ -766,6 +874,9 @@ const stages = [
 function go(n) {
   if (n < 0 || n >= stages.length) return
   S.stage = n
+  // The world follows the stage in both directions, so stepping Back out of
+  // the crossing cannot leave the panel wearing the wrong seat.
+  S.world = n >= 7 ? 'enterprise' : 'university'
   const st = stages[n]
   const [kind, who, name, place] = st.seat
   setSeat(kind, who, name, place)
@@ -788,7 +899,9 @@ document.addEventListener('keydown', e => {
 })
 
 /* ---------- boot ---------- */
+// First paint never waits on the network: the cold open is fully static, and
+// the liveness labels update when the status call lands or quietly time out.
 fitStage()
-await API.loadStatus()
 integrations()
 go(0)
+API.loadStatus().then(integrations).catch(() => {})

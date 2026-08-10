@@ -11,7 +11,7 @@ export const state = { language: false, images: false }
 
 export async function loadStatus() {
   try {
-    const s = await (await fetch(api('/api/status'))).json()
+    const s = await (await fetch(api('/api/status'), { signal: AbortSignal.timeout(4000) })).json()
     state.language = !!s.language
     state.images = !!s.images
   } catch { /* server not reachable; both stay false */ }
@@ -24,6 +24,9 @@ async function language(task, payload, fallback) {
     const r = await fetch(api('/api/language'), {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ task, ...payload }),
+      // A stalled call falls back to prepared text instead of freezing the
+      // thinking dots in front of a room.
+      signal: AbortSignal.timeout(12_000),
     })
     if (!r.ok) return fallback
     const d = await r.json()
