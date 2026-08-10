@@ -485,16 +485,116 @@ async function doUpdate(info) {
   par.querySelector('.why').addEventListener('blur', commitWhy)
 }
 
-/* ---------- tag for research ---------- */
+/* ---------- research threads ----------
+   Tagging opens a conversation, not a verdict. The person can ask, challenge,
+   or reframe, and the thread holds its ground only where the evidence does.
+   Nothing reaches the document except through a proposal the person accepts,
+   refuses with a reason, or ignores. */
+
+const CONTRADICTS = /996|1,?200|3 miles|3 percent|150|regular|neighbor/i
+
+function threadTranscript(turns) {
+  return turns.map(t => (t.who === 'you' ? 'THEM: ' : 'RESEARCH: ') + t.text).join('\n').slice(-3000)
+}
+
+function addTurn(note, thread, who, text) {
+  const turns = note.querySelector('.turns')
+  const t = el('div', 'turn ' + (who === 'you' ? 'you' : 'res'))
+  if (text == null) t.innerHTML = '<span class="think"><i></i><i></i><i></i></span>'
+  else { t.textContent = text; thread.turns.push({ who, text }) }
+  turns.appendChild(t)
+  turns.scrollTop = turns.scrollHeight
+  return t
+}
+
 async function doTag(info) {
   S.busy = true
-  const note = addNote('', 'Tagged for research', info.text.slice(0, 90) + (info.text.length > 90 ? '…' : ''), null)
-  const fallback = 'Two sources bear on this. The corridor count confirms the multiple: the Route 92 parcel sees roughly forty times Alder Street\'s passing traffic, at 3.1 times the rent. The dwell note from the fast chargers on that corridor says what the traffic does: drivers wait in their cars with the doors closed. Traffic is not visits.'
-  const leads = await API.researchLeads(info.text, fallback)
-  note.querySelector('.atext').textContent = leads
+  const m = $('margin')
+  const note = el('div', 'note thread')
+  note.innerHTML = `<span class="ovl f">Research thread</span>
+    <div class="qtext">${esc(info.text.slice(0, 90))}${info.text.length > 90 ? '…' : ''}</div>
+    <div class="turns"></div>
+    <div class="threadrow"><input placeholder="Ask, challenge, or reframe"></div>
+    <div class="threadacts"><button data-t="integrate">Bring it into the doc</button><span class="tstate"></span></div>`
+  m.prepend(note)
+  const thread = { passage: info.text, blockId: info.blockId, p: info.p, turns: [] }
+
   capture(S.record, 'Tagged a passage for research')
   renderRecord()
+
+  const opening = addTurn(note, thread, 'research', null)
+  const fallback = 'Two sources bear on this. The corridor count confirms the multiple: the Route 92 parcel sees roughly forty times Alder Street\'s passing traffic, at 3.1 times the rent. The dwell note from the fast chargers on that corridor says what the traffic does: drivers wait in their cars with the doors closed. Traffic is not visits.'
+  const leads = await API.researchLeads(info.text, fallback)
+  opening.remove()
+  addTurn(note, thread, 'research', leads)
+  if (CONTRADICTS.test(leads)) evidenceOpened.add(thread.blockId)
   S.busy = false
+
+  const input = note.querySelector('.threadrow input')
+  input.addEventListener('keydown', async ev => {
+    if (ev.key !== 'Enter' || S.busy) return
+    const q = input.value.trim()
+    if (!q) return
+    input.value = ''
+    S.busy = true
+    addTurn(note, thread, 'you', q)
+    const holding = addTurn(note, thread, 'research', null)
+    const replyFallback = 'The pack only goes so far here. What it does hold: 996 of 1,200 sessions came from within 3 miles, and 150 of 200 regulars cannot plug in where they park. Anything past that would need a source Kado does not have yet.'
+    const ans = await API.researchReply(thread.passage, threadTranscript(thread.turns), q, replyFallback)
+    holding.remove()
+    addTurn(note, thread, 'research', ans)
+    if (CONTRADICTS.test(ans)) evidenceOpened.add(thread.blockId)
+    S.busy = false
+  })
+
+  note.querySelector('[data-t="integrate"]').addEventListener('click', async () => {
+    if (S.busy) return
+    const state = note.querySelector('.tstate')
+    if (!thread.turns.length) return
+    S.busy = true
+    state.textContent = 'writing the revision'
+    const current = thread.p.textContent.trim()
+    const revised = await API.integrateResearch(current, threadTranscript(thread.turns))
+    state.textContent = ''
+    S.busy = false
+    if (!revised) { state.textContent = 'could not draft a revision, the thread stands as notes'; return }
+    proposeRevision(thread.p, thread.blockId, revised, 'Suggested revision, from your research')
+  })
+}
+
+/* A proposal beside the person's words, never in place of them. Shared by
+   research integration; the same consent shape the Update flow uses. */
+function proposeRevision(p, blockId, text, label) {
+  const block = p.closest('.block')
+  if (block.querySelector('.parallel')) return
+  const par = el('div', 'parallel')
+  par.innerHTML = `<span class="ovl f">${esc(label)} · not yet applied</span>
+    <div class="text">${esc(text)}</div>
+    <div class="acts"><button class="btn small solid" data-a="keep">Use this</button>
+      <button class="btn small" data-a="discard">Keep mine</button></div>
+    <div class="whyrow"><input class="why" placeholder="Why are you keeping yours? One line."></div>`
+  block.appendChild(par)
+  par.addEventListener('click', ev => {
+    const a = ev.target.closest('button')?.dataset.a
+    if (a === 'keep') {
+      p.textContent = text
+      par.remove()
+      capture(S.record, 'Integrated a research revision unchanged')
+      renderRecord()
+    }
+    if (a === 'discard') {
+      par.querySelector('.whyrow').classList.add('on')
+      par.querySelector('.why').focus()
+    }
+  })
+  const commitWhy = () => {
+    const reason = par.querySelector('.why').value.trim()
+    if (!reason) return
+    par.remove()
+    record(STRUCTURAL.refusedRewrite({ reason }), { quote: reason, section: blockId })
+  }
+  par.querySelector('.why').addEventListener('keydown', ev => { if (ev.key === 'Enter') commitWhy() })
+  par.querySelector('.why').addEventListener('blur', commitWhy)
 }
 
 /* ---------- images, briefed in the document rather than an OS dialog ---------- */

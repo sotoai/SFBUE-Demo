@@ -57,6 +57,17 @@ export async function draftSection(heading, question, fallback) {
   return language('draft', { passage: heading, question }, fallback)
 }
 
+/* One turn of an interactive research thread on a tagged passage. */
+export async function researchReply(passage, thread, question, fallback) {
+  return language('research', { passage, thread, question }, fallback)
+}
+
+/* The thread's findings, folded back into the passage. Returns null rather
+   than a canned guess when it cannot run, so the thread can say so. */
+export async function integrateResearch(passage, thread) {
+  return language('integrate', { passage, thread }, null)
+}
+
 /* ---------- images ---------- */
 
 async function pollTask(taskId, onTick) {

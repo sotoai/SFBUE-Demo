@@ -4,7 +4,7 @@
   --good:#3F7A5E; --dim:#F2F0EA;
   --serif:"Iowan Old Style","Palatino Nova",Palatino,Georgia,serif;
   --sans:-apple-system,"SF Pro Text","Segoe UI",Inter,sans-serif;
-  --panel:320px; --margin-col:260px;
+  --panel:320px; --margin-col:300px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
@@ -225,6 +225,24 @@ p.body:empty::before{content:attr(data-ph); color:var(--faint); font-style:itali
 .margincol::-webkit-scrollbar-thumb{background:var(--hair); border-radius:3px}
 .note{border-left:2px solid var(--hair); padding:2px 0 2px 12px; margin-bottom:20px}
 .note.q{border-left-color:var(--signal)}
+
+/* research threads: a conversation in the margin, not a verdict */
+.note.thread{border-left-color:var(--signal)}
+.note.thread .turns{max-height:340px; overflow-y:auto; margin-top:8px}
+.note.thread .turns::-webkit-scrollbar{width:5px}
+.note.thread .turns::-webkit-scrollbar-thumb{background:var(--hair); border-radius:3px}
+.turn{font-size:12.5px; line-height:1.55; margin-top:9px}
+.turn.res{color:var(--graphite)}
+.turn.you{color:var(--ink); font-weight:500; padding-left:10px; border-left:1px solid var(--hair)}
+.threadrow{margin-top:10px}
+.threadrow input{width:100%; border:none; border-bottom:1px solid var(--hair); background:transparent;
+  font-family:var(--sans); font-size:12.5px; padding:5px 2px; outline:none; color:var(--ink)}
+.threadrow input::placeholder{color:var(--faint)}
+.threadacts{display:flex; align-items:center; gap:10px; margin-top:10px}
+.threadacts button{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--graphite);
+  background:none; border:none; border-bottom:1px solid var(--hair); cursor:pointer; padding:1px 0}
+.threadacts button:hover{color:var(--ink); border-bottom-color:var(--ink)}
+.threadacts .tstate{font-size:10.5px; color:var(--faint)}
 .note .ovl{margin-bottom:5px}
 .note .qtext{font-size:13px; font-weight:500; line-height:1.45}
 .note .atext{font-size:13px; color:var(--graphite); margin-top:6px; line-height:1.55}
