@@ -391,6 +391,10 @@ p.body:empty::before{content:attr(data-ph); color:var(--faint); font-style:itali
 
 /* charts: the record drawn, in the product's own palette */
 .radarwrap{display:flex; flex-direction:column; align-items:center; padding:8px 0 2px}
+/* the box is sized from the labels, so let it render near 1:1 rather than
+   stretching to the column and blowing the type up with it */
+.radarwrap svg{max-width:270px}
+.teachchart.radarwrap svg, .teachchart .radarwrap svg{max-width:440px}
 .chartcap{font-size:10px; color:var(--faint); line-height:1.5; text-align:center; margin-top:4px; max-width:280px}
 .teachchart{padding:18px 22px 16px; margin-top:14px}
 .teachchart .ovl{margin-bottom:10px}

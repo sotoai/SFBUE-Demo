@@ -246,7 +246,7 @@ function renderSidebar() {
   body.innerHTML = ''
 
   const radar = el('div', 'radarwrap')
-  radar.innerHTML = radarSVG(counts, { size: 190 }) + `<div class="chartcap">${RADAR_CAPTION}</div>`
+  radar.innerHTML = radarSVG(counts, { r: 56 }) + `<div class="chartcap">${RADAR_CAPTION}</div>`
   body.appendChild(radar)
 
   const insWrap = el('div', 'insights')
@@ -288,7 +288,7 @@ function renderTeacher() {
   t.appendChild(el('div', 'teach-line', esc(recordSummary(counts))))
 
   const radar = el('div', 'card teachchart radarwrap')
-  radar.innerHTML = radarSVG(counts, { size: 300, ringLabels: true }) + `<div class="chartcap">${RADAR_CAPTION}</div>`
+  radar.innerHTML = radarSVG(counts, { r: 96, ringLabels: true, font: 10 }) + `<div class="chartcap">${RADAR_CAPTION}</div>`
   t.appendChild(radar)
 
   if (PROV.size) {

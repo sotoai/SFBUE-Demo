@@ -19,12 +19,24 @@ const STEP = 360 / LIVE_AXES.length
 
 const bandStep = c => (c <= 0 ? 0 : c === 1 ? 1 : c === 2 ? 2 : c <= 4 ? 3 : 4)
 
-/* ---------- the radar: the record's shape at a glance ---------- */
-export function radarSVG(counts, { size = 200, ringLabels = false } = {}) {
-  const cx = size / 2, cy = size / 2
-  const R = size / 2 - (ringLabels ? 44 : 40)
+/* ---------- the radar: the record's shape at a glance ----------
+
+   The box is computed from the labels rather than guessed. Axis names sit
+   outside the outer ring, so the margin has to be as wide as the longest
+   name or the ends of the words fall off the edge. */
+export function radarSVG(counts, { r = 58, ringLabels = false, font = 8.5 } = {}) {
+  const LABEL_REACH = 1.18
+  const charW = font * 0.68                       // uppercase, with letter spacing
+  const labelW = Math.max(...LIVE_AXES.map(a => a.name.length)) * charW
+  const ringLabelW = ringLabels ? Math.max(...BAND_STEPS.map(b => b.length)) * (font * 0.6) + 8 : 0
+  const padX = Math.max(labelW, ringLabelW) + 6
+  const padY = font + 10
+  const W = Math.round(2 * (r * LABEL_REACH + padX))
+  const H = Math.round(2 * (r * LABEL_REACH + padY))
+  const cx = W / 2, cy = H / 2
+
   const angle = i => (-90 + i * STEP) * Math.PI / 180
-  const pt = (i, f) => [cx + Math.cos(angle(i)) * R * f, cy + Math.sin(angle(i)) * R * f]
+  const pt = (i, f) => [cx + Math.cos(angle(i)) * r * f, cy + Math.sin(angle(i)) * r * f]
   const poly = f => LIVE_AXES.map((_, i) => pt(i, f).map(v => v.toFixed(1)).join(',')).join(' ')
 
   const rings = [0.25, 0.5, 0.75, 1].map(f =>
@@ -43,20 +55,22 @@ export function radarSVG(counts, { size = 200, ringLabels = false } = {}) {
   }).join('')
 
   const labels = LIVE_AXES.map((a, i) => {
-    const [x, y] = pt(i, 1.2)
-    const anchor = Math.abs(x - cx) < 8 ? 'middle' : x > cx ? 'start' : 'end'
-    const step = steps[i]
-    return `<text x="${x.toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="${anchor}"
-      font-size="8.5" letter-spacing=".07em" fill="${step ? 'var(--ink)' : 'var(--faint)'}"
+    const [x, y] = pt(i, LABEL_REACH)
+    const dx = x - cx
+    const anchor = Math.abs(dx) < r * 0.2 ? 'middle' : dx > 0 ? 'start' : 'end'
+    const dy = y < cy - r * 0.5 ? -1 : y > cy + r * 0.5 ? 7 : 3
+    return `<text x="${x.toFixed(1)}" y="${(y + dy).toFixed(1)}" text-anchor="${anchor}"
+      font-size="${font}" letter-spacing=".07em" fill="${steps[i] ? 'var(--ink)' : 'var(--faint)'}"
       style="text-transform:uppercase">${a.name}</text>`
   }).join('')
 
   const ringText = ringLabels ? [1, 2, 3, 4].map(s => {
     const [x, y] = pt(0, s / 4)
-    return `<text x="${(x + 5).toFixed(1)}" y="${(y - 3).toFixed(1)}" font-size="8" fill="var(--faint)">${BAND_STEPS[s]}</text>`
+    return `<text x="${(x + 5).toFixed(1)}" y="${(y - 3).toFixed(1)}" font-size="${font - 0.5}" fill="var(--faint)">${BAND_STEPS[s]}</text>`
   }).join('') : ''
 
-  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="The record's five readable domains, by evidence band">
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img"
+    aria-label="All eight elemental attributes, by evidence band">
     ${rings}${spokes}
     <polygon points="${data}" fill="var(--signal)" fill-opacity=".10" stroke="var(--signal)" stroke-width="1.5" stroke-linejoin="round"/>
     ${dots}${ringText}${labels}
