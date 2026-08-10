@@ -520,9 +520,122 @@ function noteSourceOpened(pack) {
   renderRecord()
 }
 
+/* ---------- discussing the assignment, typed or aloud ----------
+
+   The same discussion either way: voice is ears and a voice bolted onto the
+   text thread, with the language, the world, and the record shared with
+   everything else. Every utterance is studied the same way an edit is: it
+   rides the bounded semantic channel toward the knowledge graph, and the
+   thread itself is captured intake. */
+
+const DISCUSSION = { turns: [], captured: false }
+let recorder = null
+
+function discussTranscript() {
+  return DISCUSSION.turns.map(t => (t.who === 'you' ? 'THEM: ' : 'GUIDE: ') + t.text).join('\n').slice(-3000)
+}
+
+function renderDiscussion(host) {
+  const wrap = el('div', 'discuss')
+  wrap.innerHTML = `<span class="ovl">Discuss the assignment</span>
+    <div class="dsub">Type or talk it through. Asking a real question sharpens the record the same way writing does.</div>
+    <div class="dturns"></div>
+    <div class="drow2">
+      <input placeholder="Ask about the assignment, or think out loud">
+      <button class="micbtn" title="${API.state.voice ? 'Talk instead of typing' : 'Voice needs ELEVENLABS_API_KEY on the server'}">voice</button>
+    </div>
+    <div class="dstate"></div>`
+  host.appendChild(wrap)
+
+  const turnsEl = wrap.querySelector('.dturns')
+  const stateEl = wrap.querySelector('.dstate')
+  const input = wrap.querySelector('input')
+  const mic = wrap.querySelector('.micbtn')
+
+  const paintTurns = () => {
+    turnsEl.innerHTML = DISCUSSION.turns.map(t =>
+      `<div class="turn ${t.who === 'you' ? 'you' : 'res'}">${esc(t.text)}</div>`).join('')
+    turnsEl.scrollTop = turnsEl.scrollHeight
+  }
+  paintTurns()
+
+  async function exchange(text, { spoken }) {
+    if (!text || S.busy) return
+    S.busy = true
+    DISCUSSION.turns.push({ who: 'you', text })
+    paintTurns()
+    stateEl.textContent = 'thinking'
+    if (!DISCUSSION.captured) {
+      DISCUSSION.captured = true
+      capture(S.record, 'Discussed the assignment before writing')
+      renderRecord()
+    }
+    const transcript = discussTranscript()
+    const fallback = 'The brief asks for three calls: who the customer is, what the brand stands for, and where the next two corners go. Each one should hold up against the pack. Which of the three feels least clear right now?'
+    const reply = await API.discussReply(transcript, text, fallback)
+    DISCUSSION.turns.push({ who: 'res', text: reply })
+    paintTurns()
+    stateEl.textContent = ''
+    S.busy = false
+    // The utterance is studied like any other act, through the same bounded
+    // channel, toward the same graph. Most utterances read as nothing.
+    readAct(`${spoken ? 'In a spoken discussion' : 'In a discussion'} about the assignment they said: "${text}"`,
+      'The Kado launch concept assignment', null)
+    if (spoken) {
+      stateEl.textContent = 'speaking'
+      const v = await API.speak(reply)
+      if (v.ok) {
+        const player = new Audio(v.url)
+        player.onended = () => { stateEl.textContent = ''; URL.revokeObjectURL(v.url) }
+        player.play().catch(() => { stateEl.textContent = '' })
+      } else stateEl.textContent = ''
+    }
+  }
+
+  input.addEventListener('keydown', ev => {
+    if (ev.key !== 'Enter') return
+    const t = input.value.trim()
+    if (!t) return
+    input.value = ''
+    exchange(t, { spoken: false })
+  })
+
+  mic.addEventListener('click', async () => {
+    if (!API.state.voice) { stateEl.textContent = 'voice is not configured on the server yet'; return }
+    if (recorder) {
+      recorder.stop()
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const chunks = []
+      recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '' })
+      recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data) }
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        recorder = null
+        mic.textContent = 'voice'
+        mic.classList.remove('rec')
+        stateEl.textContent = 'hearing'
+        const heard = await API.transcribe(new Blob(chunks, { type: 'audio/webm' }))
+        if (!heard.ok) { stateEl.textContent = 'could not hear that, try again or type'; return }
+        stateEl.textContent = ''
+        exchange(heard.text, { spoken: true })
+      }
+      recorder.start()
+      mic.textContent = 'stop'
+      mic.classList.add('rec')
+      stateEl.textContent = 'listening'
+    } catch {
+      stateEl.textContent = 'microphone unavailable in this browser'
+    }
+  })
+}
+
 /* The drawer: the assignment beside the work, put away in one click. */
 function openDrawer(focusPack) {
   renderAssignment($('drawerBody'), { withActions: false })
+  renderDiscussion($('drawerBody'))
   $('drawer').classList.add('on')
   $('drawerVeil').classList.add('on')
   if (focusPack) $('drawerBody').querySelector('.packrow')?.scrollIntoView({ block: 'start' })
@@ -541,10 +654,11 @@ function renderBegin() {
   c.innerHTML = ''
   const wrap = el('div', 'doc beginwrap')
   wrap.innerHTML = `<h1>Launch concept. ${PRODUCT.name}.</h1>
-    <div class="docmeta">Read the assignment, then choose how to begin.</div>
+    <div class="docmeta">Read the assignment, then choose how to begin. Lost already? Ask, below, in text or out loud.</div>
     <div class="assignment"></div>`
   c.appendChild(wrap)
   renderAssignment(wrap.querySelector('.assignment'), { withActions: true })
+  renderDiscussion(wrap.querySelector('.assignment'))
   $('sideSub').textContent = 'Nothing is recorded while you read. The record starts with the work.'
 }
 

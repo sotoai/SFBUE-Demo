@@ -7,14 +7,15 @@
 
 import { api } from './config.js'
 
-export const state = { language: false, images: false }
+export const state = { language: false, images: false, voice: false }
 
 export async function loadStatus() {
   try {
     const s = await (await fetch(api('/api/status'), { signal: AbortSignal.timeout(4000) })).json()
     state.language = !!s.language
     state.images = !!s.images
-  } catch { /* server not reachable; both stay false */ }
+    state.voice = !!s.voice
+  } catch { /* server not reachable; all stay false */ }
   return state
 }
 
@@ -80,6 +81,48 @@ export async function readAct(act, passage) {
 /* One turn of an interactive research thread on a tagged passage. */
 export async function researchReply(passage, thread, question, fallback) {
   return language('research', { passage, thread, question }, fallback)
+}
+
+/* One turn of a discussion about the assignment, spoken or typed. */
+export async function discussReply(thread, question, fallback) {
+  return language('discuss', { thread, question }, fallback)
+}
+
+/* ---------- voice: ears and voice, nothing else ---------- */
+
+export async function transcribe(blob) {
+  if (!state.voice) return { ok: false, reason: 'not_configured' }
+  try {
+    const b64 = await new Promise((resolve, reject) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(String(fr.result).split(',')[1])
+      fr.onerror = reject
+      fr.readAsDataURL(blob)
+    })
+    const r = await fetch(api('/api/voice/stt'), {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ audio: b64, mime: blob.type || 'audio/webm' }),
+      signal: AbortSignal.timeout(35_000),
+    })
+    const d = await r.json()
+    if (!r.ok || !d.text) return { ok: false, reason: d.error || 'no_text' }
+    return { ok: true, text: d.text }
+  } catch (e) { return { ok: false, reason: e.message } }
+}
+
+export async function speak(text) {
+  if (!state.voice) return { ok: false, reason: 'not_configured' }
+  try {
+    const r = await fetch(api('/api/voice/tts'), {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(35_000),
+    })
+    const d = await r.json()
+    if (!r.ok || !d.audio) return { ok: false, reason: d.error || 'no_audio' }
+    const bytes = Uint8Array.from(atob(d.audio), c => c.charCodeAt(0))
+    return { ok: true, url: URL.createObjectURL(new Blob([bytes], { type: d.mime || 'audio/mpeg' })) }
+  } catch (e) { return { ok: false, reason: e.message } }
 }
 
 /* The thread's findings, folded back into the passage. Returns null rather
