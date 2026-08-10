@@ -23,11 +23,13 @@ export const WORLDS = {
     evaluator: { name: 'Prof. Marisol Vega', role: 'Studio lead. Ran go-to-market for two hardware companies.' },
     learner: { name: 'Amara Osei', role: 'Second term. Strong writer, fast.' },
     stakes: 'inside the artifact',
-    brief: `Kado runs one charging cafe on a corner in Oakland and wants three by next fall. They have a pilot and no position.
+    brief: `Kado is a cafe in Oakland where people charge their electric cars at the curb while they wait inside. The first location has been open six months, and the owners want to open two more by next fall. They have asked our studio for a launch plan.
 
-Build the launch concept. It has to decide three things: who Kado is for, what it stands for, and where the next corners go. Everything you need is in the evidence pack, including six months of session data and a note from their founder about the highway.
+Your job this week is to write that plan as a short document. It needs to answer three questions with clear recommendations: who Kado's customer is, what the brand should stand for, and where the next two locations should go.
 
-Five working days. Bring me something Elena Voss could act on Monday morning, including the visuals you would put in front of her. If you change your mind partway through, do not clean it up. I want to see the turn.`,
+You are not guessing at these. The evidence pack below holds four documents from the company: six months of session data from the chargers, timing data on how long people charge and stay, a survey of a possible highway location, and a note from the founder, Elena Voss, about where she wants the company to go. Read them before you write. Every recommendation in your draft should hold up against what is in them.
+
+Due Friday. Include the images you would put in front of Elena. And if you change your mind about a recommendation partway through, leave the change visible in the document. How your thinking moved matters as much as where it landed.`,
     wants: 'Whether she can hear what the data says over what the founder wants, and tell the difference between changing her mind and losing her nerve. I already know she can write.',
   },
   enterprise: {

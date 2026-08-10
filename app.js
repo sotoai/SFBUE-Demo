@@ -215,7 +215,8 @@ function renderDoc() {
     <div class="from"><span class="ovl">Your assignment</span><span class="ovl f">From ${esc(w.evaluator.name)} · Applied Launch Studio</span></div>
     <div class="brief-body">${esc(w.brief)}</div>
     <div class="packrow">
-      <span class="ovl f" style="margin-bottom:8px">The evidence pack, four sources</span>
+      <span class="ovl" style="margin-bottom:2px">The evidence pack</span>
+      <div class="packsub">Four documents from Kado. Open any of them here, any time. Your draft should hold up against what they say.</div>
       <div class="packchips">${EVIDENCE_PACK.map(p => `<button data-pack="${p.id}">${esc(p.label)}</button>`).join('')}</div>
       <div class="packbody hide" id="packbody"></div>
     </div>`
