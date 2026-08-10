@@ -6,7 +6,7 @@
    walkthrough here: the state is live, and both views read it. */
 
 import { DOMAINS, WORLDS, PRODUCT, DRAFT, EVIDENCE_PACK, IMAGE_MOMENTS, BLOCK_TYPES, IMAGE_ACTIONS, STAKEHOLDERS } from './js/scenario.js'
-import { createRecord, bandFor, domainCounts, STRUCTURAL, observe, capture, dispute, relativeTime, GUARDRAILS } from './js/engine.js'
+import { createRecord, bandFor, domainCounts, domainEvidence, STRUCTURAL, acceptProposal, observe, capture, dispute, relativeTime, GUARDRAILS } from './js/engine.js'
 import { deriveInsights } from './js/insights.js'
 import { radarSVG, timelineSVG, compositionHTML, RADAR_CAPTION } from './js/charts.js'
 import { buildGraph, graphSVG, nodeDetail } from './js/graph.js'
@@ -30,7 +30,6 @@ const S = {
    which were already credited for a revision. Typing alone stays dark;
    typing after reading the evidence that contradicts you is Reasoning. */
 const evidenceOpened = new Set()
-const revisedBlocks = new Set()
 
 /* Provenance: which sections began machine drafted, and what has touched
    them since. This is what lets a development insight say, honestly, that a
@@ -46,11 +45,13 @@ function touchBlock(blockId, how) {
 let threadChallenges = 0
 const challengeTexts = []
 
-/* Sections whose text has been revised, and whether the coherence reading and
-   each section's stakeholder framing have already been credited. */
+/* Sections whose text has been revised, and which have had stakeholder
+   framing credited. freshEvidence holds sections where new contradicting
+   evidence has landed and not yet been acted on, so revising after checking
+   can be read every time it genuinely happens. */
 const editedSections = new Set()
 const framedBlocks = new Set()
-let systemsCredited = false
+const freshEvidence = new Set()
 
 function integrations() {
   $('intLang').className = 'integration' + (API.state.language ? '' : ' off')
@@ -93,6 +94,7 @@ function recordSummary(counts) {
 
 function domainRows(counts, { compressDark }) {
   const wrap = el('div', 'drows')
+  const ev = domainEvidence(S.record)
   const dark = DOMAINS.filter(d => !counts[d.id])
   for (const d of DOMAINS) {
     const n = counts[d.id] || 0
@@ -100,7 +102,7 @@ function domainRows(counts, { compressDark }) {
     const row = el('div', 'drow' + (n > 0 ? ' lit' : ''))
     row.dataset.domain = d.id
     const marks = [0, 1, 2, 3].map(i => `<i class="${i < Math.min(n, 4) ? 'on' : ''}"></i>`).join('')
-    row.innerHTML = `<span class="nm" title="${esc(d.reads)}">${d.name}</span><span class="ladder">${marks}</span><span class="band">${n ? bandFor(n) : 'no evidence'}</span>`
+    row.innerHTML = `<span class="nm" title="${esc(d.reads)}">${d.name}</span><span class="ladder">${marks}</span><span class="band">${n ? bandFor(ev[d.id]) : 'no evidence'}</span>`
     wrap.appendChild(row)
   }
   if (compressDark && dark.length) {
@@ -112,11 +114,12 @@ function domainRows(counts, { compressDark }) {
 }
 
 function observationCard(o, { disputable }) {
-  const n = el('div', 'obs' + (o.disputed ? ' disputed' : ''))
+  const n = el('div', 'obs' + (o.disputed ? ' disputed' : '') + (o.proposed ? ' proposed' : ''))
   n.innerHTML = `<div class="sig">${o.signal} · ${o.domainName}</div>
     <div class="because">${esc(o.because)}</div>
     ${o.quote ? `<div class="quote">${esc(o.quote)}</div>` : ''}
     <div class="meta"><span>${relativeTime(o.elapsed)}</span>
+      ${o.proposed ? '<span class="proposedtag" title="Proposed by the reading from a closed list of signals, and disputable like any other line">read, not counted by rule</span>' : ''}
       ${o.disputed || !disputable ? '' : `<button data-dispute="${o.id}">I disagree</button>`}</div>
     ${o.disputed ? `<div class="dispute">Disputed: ${esc(o.disputeReason)}</div>` : ''}`
   return n
@@ -351,6 +354,30 @@ function record(hit, ctx) {
   const entry = observe(S.record, hit, ctx)
   if (entry) { renderRecord(); flashDomain(entry.domainId) }
   return entry
+}
+
+/* ---------- the semantic channel ----------
+
+   Structural rules see that an act happened. This reads what KIND of thinking
+   the act shows, which is the part a rule cannot decide. It is bounded hard:
+   the model proposes one signal from the closed list and a sentence about the
+   act, acceptProposal throws away anything outside the list, and the result
+   is marked as proposed everywhere it appears, disputable like any other line.
+
+   Capped per session, because every reading costs a real call, and skipped
+   entirely when the language integration is not live. */
+const SEMANTIC_CAP = 14
+let semanticReads = 0
+
+async function readAct(act, passage, section) {
+  if (semanticReads >= SEMANTIC_CAP) return
+  semanticReads++
+  const proposal = await API.readAct(act, passage)
+  const hit = acceptProposal(proposal)
+  if (!hit) return
+  observe(S.record, hit, { quote: String(act).slice(0, 140), section })
+  renderRecord()
+  flashDomain(hit.domainId)
 }
 
 /* Disputes, inline where the line lives. */
@@ -589,7 +616,11 @@ function renderCanvas() {
       position: 'What should the brand stand for? One clear position.',
       channel: 'Where do the next two corners go? Name the cost of your choice.',
     }[b.id] || 'Write here.'
-    block.innerHTML = `<button class="gutter-add" title="Add below">+</button>
+    block.innerHTML = `<div class="gutter">
+        <button class="gutter-add" title="Add below">+</button>
+        <button class="gutter-move" data-move="up" title="Move up">↑</button>
+        <button class="gutter-move" data-move="down" title="Move down">↓</button>
+      </div>
       <span class="ovl"><span class="tag">${b.tag ? esc(b.tag) + ' · ' : ''}</span>${b.heading}</span>
       <p class="body" contenteditable="true" spellcheck="false" data-block="${b.id}" data-ph="${esc(ph)}"></p>`
     doc.appendChild(block)
@@ -626,22 +657,34 @@ document.addEventListener('focusout', e => {
 
   // A document is a system. Revising a second section is the person keeping
   // the whole coherent, which is what Systems reads.
+  // Each section can contribute this reading once, so keeping a longer
+  // document coherent shows more than keeping a short one coherent.
   if (hadText) {
     const priorSections = editedSections.size
-    editedSections.add(id)
-    if (!systemsCredited && editedSections.size > priorSections && priorSections > 0) {
-      systemsCredited = true
-      record(STRUCTURAL.alignedAcrossSections({ priorSections }),
-        { quote: p.textContent.trim().slice(0, 120), section: id })
+    if (!editedSections.has(id)) {
+      editedSections.add(id)
+      if (priorSections > 0) {
+        record(STRUCTURAL.alignedAcrossSections({ priorSections }),
+          { quote: p.textContent.trim().slice(0, 120), section: id })
+      }
     }
   }
 
   renderRecord()
-  if (!hadText || revisedBlocks.has(id)) return
-  if (evidenceOpened.has(id)) {
-    revisedBlocks.add(id)
+  if (!hadText) return
+
+  // A revision after evidence can be read again when NEW evidence has landed
+  // since the last one, so a person who keeps checking and keeps revising
+  // keeps being seen. Repeating the same edit against the same source does
+  // not, which is what stops the reading from being farmable.
+  if (freshEvidence.has(id)) {
+    freshEvidence.delete(id)
     record(STRUCTURAL.revisedAfterEvidence({ evidenceOpened: true }),
       { quote: p.textContent.trim().slice(0, 120), section: id })
+  }
+  if (p.textContent.trim().length > 40) {
+    readAct(`They rewrote a passage. Before: "${before.trim().slice(0, 200)}" After: "${p.textContent.trim().slice(0, 200)}"`,
+      PROV.get(id)?.heading || id, id)
   }
 })
 
@@ -705,11 +748,20 @@ async function doAsk(info, q) {
   note.querySelector('.atext').textContent = ans
   const contradicts = CONTRADICTS.test(ans)
   touchBlock(info.blockId, 'asked')
-  record(STRUCTURAL.openedContradictingSource({ contradicts }),
-    { quote: info.text.slice(0, 120), section: info.blockId })
-  if (contradicts) evidenceOpened.add(info.blockId)
+  // One act, one structural reading. Finding a contradiction is Check;
+  // asking a question that did not is still inquiry, and was invisible before.
+  if (contradicts) {
+    record(STRUCTURAL.openedContradictingSource({ contradicts }),
+      { quote: info.text.slice(0, 120), section: info.blockId })
+    evidenceOpened.add(info.blockId)
+    freshEvidence.add(info.blockId)
+  } else {
+    record(STRUCTURAL.questionedPassage({ question: q }),
+      { quote: q, section: info.blockId })
+  }
   renderRecord()
   S.busy = false
+  readAct(`They asked: "${q}"`, info.text, info.blockId)
 }
 
 /* ---------- update: a suggestion never silently replaces a person's words */
@@ -831,11 +883,14 @@ async function doTag(info) {
     const ans = await API.researchReply(thread.passage, transcript, q, replyFallback)
     holding.remove()
     addTurn(note, thread, 'research', ans)
-    if (CONTRADICTS.test(ans)) evidenceOpened.add(thread.blockId)
+    if (CONTRADICTS.test(ans)) { evidenceOpened.add(thread.blockId); freshEvidence.add(thread.blockId) }
     threadChallenges += 1
     challengeTexts.push(q)
+    // Pushing back with an argument is thinking, and it was invisible before.
+    record(STRUCTURAL.pressedChallenge({ challenge: q }), { quote: q, section: thread.blockId })
     renderRecord()
     S.busy = false
+    readAct(`In a research thread they pushed back: "${q}"`, thread.passage, thread.blockId)
   })
 
   note.querySelector('[data-t="integrate"]').addEventListener('click', async () => {
@@ -1058,7 +1113,31 @@ insertMenu.innerHTML = BLOCK_TYPES.map(g => `
 `).join('')
 
 function closeInsertMenu() { insertMenu.classList.remove('on'); insertAfter = null }
+/* Moving a passage: order is structure, and structure is a claim. */
+const movedBlocks = new Set()
 document.addEventListener('click', e => {
+  const mv = asEl(e.target)?.closest('.gutter-move')
+  if (mv) {
+    e.stopPropagation()
+    const block = mv.closest('.block')
+    const sib = mv.dataset.move === 'up' ? block.previousElementSibling : block.nextElementSibling
+    if (!sib || !sib.classList.contains('block')) return
+    if (mv.dataset.move === 'up') sib.before(block); else sib.after(block)
+    block.classList.add('fresh')
+    setTimeout(() => block.classList.remove('fresh'), 1200)
+    const id = block.dataset.block
+    touchBlock(id, 'moved')
+    if (!movedBlocks.has(id)) {
+      movedBlocks.add(id)
+      record(STRUCTURAL.restructured(), {
+        quote: PROV.get(id)?.heading || block.querySelector('.ovl')?.textContent || 'a passage',
+        section: id,
+      })
+    } else renderRecord()
+    const order = [...document.querySelectorAll('#doccol .block .ovl')].map(o => o.textContent.trim()).join(' then ')
+    readAct(`They moved a passage. The document now reads: ${order}`, PROV.get(id)?.heading || id, id)
+    return
+  }
   const add = asEl(e.target)?.closest('.gutter-add')
   if (add) {
     e.stopPropagation()

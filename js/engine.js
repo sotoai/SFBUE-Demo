@@ -28,21 +28,44 @@ export function createRecord(worldKey) {
   }
 }
 
-/* Band is a function of how many separate work moments support a domain.
-   It describes the evidence, never the person. */
-export function bandFor(count) {
-  if (count <= 0) return null
-  if (count === 1) return BANDS[0]      // Noticed
-  if (count === 2) return BANDS[1]      // Emerging
-  if (count <= 4) return BANDS[2]       // Supported
-  return BANDS[3]                        // Well evidenced
+/* What supports each domain: how many moments, and how varied they are.
+
+   Disputed lines are excluded. A person who says a reading is wrong should
+   not still be carried by it, and a strikethrough that quietly still counts
+   is the kind of dishonesty this whole instrument exists to avoid. */
+export function domainEvidence(record) {
+  const out = {}
+  for (const d of DOMAINS) out[d.id] = { count: 0, sections: new Set(), kinds: new Set(), proposed: 0 }
+  for (const o of record.observations) {
+    if (o.disputed) continue
+    const e = out[o.domainId]
+    if (!e) continue
+    e.count++
+    if (o.section) e.sections.add(o.section)
+    e.kinds.add(o.because)
+    if (o.proposed) e.proposed++
+  }
+  return out
 }
 
 export function domainCounts(record) {
+  const ev = domainEvidence(record)
   const counts = {}
-  for (const d of DOMAINS) counts[d.id] = 0
-  for (const o of record.observations) counts[o.domainId] = (counts[o.domainId] || 0) + 1
+  for (const d of DOMAINS) counts[d.id] = ev[d.id].count
   return counts
+}
+
+/* Band is a function of how much supports a domain AND how varied it is.
+   Repeating one move never reaches the top bands: five refusals of the same
+   kind in one passage is a habit, not evidence across a body of work. */
+export function bandFor(e) {
+  const n = typeof e === 'number' ? e : e.count
+  if (n <= 0) return null
+  const variety = typeof e === 'number' ? 1 : Math.max(e.sections.size, e.kinds.size)
+  if (n === 1) return BANDS[0]                    // Noticed
+  if (n === 2 || variety < 2) return BANDS[1]     // Emerging
+  if (n <= 4 || variety < 3) return BANDS[2]      // Supported
+  return BANDS[3]                                  // Well evidenced
 }
 
 /* ---------- structural rules ---------- */
@@ -93,6 +116,23 @@ export const STRUCTURAL = {
   alignedAcrossSections: ({ priorSections }) => priorSections > 0
     ? { signal: 'Discern', domainId: 'systems', because: 'Revised a second passage to keep it consistent with the first.' }
     : null,
+
+  /* Asking what a passage rests on, where the answer did not turn out to
+     contradict it. The question is the act; finding a contradiction is a
+     different act, read as Check, so one ask is never counted twice. */
+  questionedPassage: ({ question }) => String(question || '').trim().length >= 12
+    ? { signal: 'Inquire', domainId: 'perception', because: 'Asked what a passage rests on, unprompted.' }
+    : null,
+
+  /* Pushing back on a finding with an argument rather than accepting it.
+     Substance is required: a shrug is not a challenge. */
+  pressedChallenge: ({ challenge }) => String(challenge || '').trim().length >= 20
+    ? { signal: 'Analyze', domainId: 'reasoning', because: 'Pushed back on a research finding with an argument of their own.' }
+    : null,
+
+  /* Moving a passage changes what the document argues without changing a
+     word of it. Order is structure, and structure is a claim. */
+  restructured: () => ({ signal: 'Discern', domainId: 'systems', because: 'Moved a passage, changing the order the argument arrives in.' }),
 }
 
 /* ---------- semantic proposal, strictly bounded ---------- */

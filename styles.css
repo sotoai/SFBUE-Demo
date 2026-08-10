@@ -377,6 +377,10 @@ p.body:empty::before{content:attr(data-ph); color:var(--faint); font-style:itali
 .insight{border:1px solid var(--hair); border-left:2px solid var(--graphite); border-radius:3px;
   background:var(--surface); padding:12px 14px; margin-top:10px}
 .insight.development{border-left-color:var(--signal)}
+.insight.pattern{border-left-color:var(--good)}
+.obs.proposed{border-left-style:dashed}
+.proposedtag{font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint);
+  border:1px solid var(--hair); border-radius:99px; padding:1px 6px}
 .insight .ihead{font-size:13px; font-weight:500; line-height:1.45}
 .insight:not(.open) .ihead{cursor:pointer}
 .insight:not(.open) .ihead:hover{color:var(--graphite)}
@@ -505,6 +509,17 @@ p.body:empty::before{content:attr(data-ph); color:var(--faint); font-style:itali
 }
 .block:hover .gutter-add, .gutter-add:focus{opacity:1}
 .gutter-add:hover{color:var(--ink); border-color:var(--ink)}
+
+/* the gutter: add below, and move the passage. Order is part of the argument */
+.gutter{position:absolute; left:-30px; top:2px; display:flex; flex-direction:column; gap:3px}
+.gutter .gutter-add{position:static}
+.gutter-move{
+  width:22px; height:18px; border-radius:3px; border:1px solid var(--hair); background:var(--surface);
+  color:var(--graphite); font-size:11px; line-height:1; cursor:pointer; opacity:0;
+  transition:opacity .14s, color .14s, border-color .14s; display:flex; align-items:center; justify-content:center;
+}
+.block:hover .gutter-move, .gutter-move:focus{opacity:1}
+.gutter-move:hover{color:var(--ink); border-color:var(--ink)}
 
 .insert-menu{
   position:fixed; z-index:70; width:322px; padding:6px;

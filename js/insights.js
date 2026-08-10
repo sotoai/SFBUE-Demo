@@ -158,7 +158,94 @@ export function deriveInsights(ctx) {
     })
   }
 
+  /* ---------- how they work, read from the order of the acts ----------
+     Not how much, but in what sequence. This is the part that describes a
+     way of working rather than a quantity of it, and it is still decidable:
+     the record knows what happened and when. */
+
+  const seq = ctx.observations
+  const firstOf = ids => seq.findIndex(o => ids.includes(o.domainId))
+  const checkFirst = firstOf(['execution', 'perception'])
+  const commitFirst = firstOf(['decision'])
+  if (checkFirst > -1 && commitFirst > -1) {
+    const checkedFirst = checkFirst < commitFirst
+    out.push({
+      id: 'order', kind: 'pattern', weight: 2,
+      learner: {
+        head: checkedFirst ? 'You check before you commit.' : 'You commit, then you check.',
+        body: checkedFirst
+          ? 'In this session the questions came before the call. That order is why your recommendation can survive someone pulling on it.'
+          : 'In this session the call came before the checking. It worked out here, and it is worth knowing about yourself: the risk of that order is that the checking becomes a search for support rather than a test.',
+      },
+      teacher: {
+        head: checkedFirst ? `${who} checks before committing.` : `${who} commits, then checks.`,
+        body: checkedFirst
+          ? 'The inquiry and checking observations precede the decision in the record. The order is visible in the session timeline.'
+          : 'The decision precedes the inquiry and checking in the record. Worth naming, because checking after committing tends to become confirmation rather than test.',
+        guidance: checkedFirst
+          ? 'Ask her to name the check that could have gone the other way. If none could, the checking was ceremonial.'
+          : 'Ask what she would have needed to find to abandon the call. If nothing, the later checking was not a test.',
+      },
+      evidence: cap(seq.filter(o => ['execution', 'perception', 'decision'].includes(o.domainId))
+        .map(o => ({ quote: o.quote || o.because, note: `${o.signal} at ${Math.round(o.elapsed / 1000)}s` }))),
+    })
+  }
+
+  const held = ctx.challenges.refusals
+  const moved = ctx.counts.reasoning || 0
+  if (held + moved >= 2) {
+    const balanced = held > 0 && moved > 0
+    out.push({
+      id: 'under-pressure', kind: 'pattern', weight: 3,
+      learner: {
+        head: balanced
+          ? 'Under pressure you both move and hold.'
+          : (moved > held ? 'Under pressure you move.' : 'Under pressure you hold.'),
+        body: balanced
+          ? `You changed position ${moved} time${moved === 1 ? '' : 's'} where the evidence demanded it, and kept your own words ${held} time${held === 1 ? '' : 's'} where it did not. Being able to tell those two apart is the whole thing.`
+          : (moved > held
+            ? 'Every time this session put pressure on a passage, you changed it. That is responsive. The question worth asking yourself is whether anything in the document is worth defending.'
+            : 'Every time this session put pressure on a passage, you kept your wording and said why. That is conviction. The question worth asking yourself is what evidence would have moved you.'),
+      },
+      teacher: {
+        head: balanced
+          ? `${who} both moves and holds, with reasons for each.`
+          : (moved > held ? `${who} moves whenever pressed.` : `${who} holds whenever pressed.`),
+        body: balanced
+          ? `${moved} evidence driven revision${moved === 1 ? '' : 's'} and ${held} reasoned refusal${held === 1 ? '' : 's'} in the same session. The record can tell a change of mind from a loss of nerve because the reason is attached to both.`
+          : (moved > held
+            ? 'Every pressure point produced a revision and none produced a defended position. Responsive, and worth testing.'
+            : 'Every pressure point produced a defended position and none produced a revision. Convinced, and worth testing.'),
+        guidance: balanced
+          ? 'Ask her to explain the difference between the one she changed and the one she kept. That answer is the capability itself.'
+          : (moved > held
+            ? 'Push on something she is right about and see whether she defends it. A student who yields to every push has not been tested yet.'
+            : 'Push with something the pack actually settles and see whether she moves. Conviction that never moves is not yet judgment.'),
+      },
+      evidence: cap(seq.filter(o => ['growth', 'reasoning'].includes(o.domainId))
+        .map(o => ({ quote: o.quote || o.because, note: o.domainId === 'growth' ? 'held, with the reason' : 'moved, on the evidence' }))),
+    })
+  }
+
+  const proposed = seq.filter(o => o.proposed).length
+  if (proposed > 0) {
+    out.push({
+      id: 'proposed', kind: 'pattern', weight: 1,
+      learner: {
+        head: `${proposed} line${proposed === 1 ? '' : 's'} here came from reading your work, not from a rule.`,
+        body: 'Rules can see that something happened. They cannot see what kind of thinking it showed, so those readings are proposed from a fixed list of signals, marked as proposed wherever they appear, and disputable exactly like every other line.',
+      },
+      teacher: {
+        head: `${proposed} observation${proposed === 1 ? ' is' : 's are'} proposed rather than ruled.`,
+        body: 'These came from a bounded reading of the act itself, restricted to the same closed signal list the rules use. They are marked in the record, excluded from nothing, and disputable by her.',
+        guidance: 'Read the proposed lines with her. If she disagrees with one, that disagreement is worth more to the instrument than the line was.',
+      },
+      evidence: cap(seq.filter(o => o.proposed).map(o => ({ quote: o.quote || o.because, note: `proposed as ${o.signal}` }))),
+    })
+  }
+
   const strengths = out.filter(i => i.kind === 'strength').sort((a, b) => b.weight - a.weight)
+  const patterns = out.filter(i => i.kind === 'pattern').sort((a, b) => b.weight - a.weight)
   const development = out.filter(i => i.kind === 'development')
-  return [...strengths, ...development]
+  return [...strengths, ...patterns, ...development]
 }

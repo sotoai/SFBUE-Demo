@@ -57,6 +57,26 @@ export async function draftSection(heading, question, fallback) {
   return language('draft', { passage: heading, question }, fallback)
 }
 
+/* The semantic reading of one act.
+
+   Bounded on purpose. The model may propose one signal from a closed list
+   and a sentence describing the act. It cannot invent a signal, set a band,
+   or say anything about the person: engine.acceptProposal discards anything
+   outside the list, so a bad answer becomes no answer rather than a bad
+   record. Returns null whenever there is nothing defensible to say. */
+export async function readAct(act, passage) {
+  if (!state.language) return null
+  const raw = await language('read', { question: act, passage }, null)
+  if (!raw) return null
+  try {
+    const m = raw.match(/\{[\s\S]*\}/)
+    if (!m) return null
+    const parsed = JSON.parse(m[0])
+    if (!parsed || !parsed.signal) return null
+    return { signal: String(parsed.signal), because: sanitize(parsed.because || '') }
+  } catch { return null }
+}
+
 /* One turn of an interactive research thread on a tagged passage. */
 export async function researchReply(passage, thread, question, fallback) {
   return language('research', { passage, thread, question }, fallback)
