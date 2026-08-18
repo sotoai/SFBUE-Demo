@@ -12,6 +12,7 @@ import { radarSVG, timelineSVG, compositionHTML, RADAR_CAPTION } from './js/char
 import { buildGraph, graphSVG, nodeDetail } from './js/graph.js'
 import * as API from './js/api.js'
 import { mountIssue } from './js/issue.js'
+import { renderOrg } from './js/org.js'
 
 const $ = id => document.getElementById(id)
 const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n }
@@ -69,10 +70,12 @@ function switchView(view) {
   S.view = view
   $('studentView').classList.toggle('hide', view !== 'student')
   $('teacherView').classList.toggle('hide', view !== 'teacher')
+  $('orgView').classList.toggle('hide', view !== 'org')
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.view === view))
   if (location.hash !== '#' + view) history.replaceState(null, '', '#' + view)
   hidePill(); hideAskForm()
   if (view === 'teacher') renderTeacher()
+  if (view === 'org') renderOrg()
   emit('view')
 }
 $('tabs').addEventListener('click', e => {
@@ -80,7 +83,7 @@ $('tabs').addEventListener('click', e => {
   if (b) switchView(b.dataset.view)
 })
 addEventListener('hashchange', () => {
-  const v = location.hash === '#teacher' ? 'teacher' : 'student'
+  const v = location.hash === '#teacher' ? 'teacher' : location.hash === '#org' ? 'org' : 'student'
   if (v !== S.view) switchView(v)
 })
 
@@ -1404,7 +1407,7 @@ $('btnTrace').addEventListener('click', () => {
 /* ---------- boot ---------- */
 renderBegin()
 renderSidebar()
-switchView(location.hash === '#teacher' ? 'teacher' : 'student')
+switchView(location.hash === '#teacher' ? 'teacher' : location.hash === '#org' ? 'org' : 'student')
 integrations()
 API.loadStatus().then(integrations).catch(() => {})
 mountIssue({

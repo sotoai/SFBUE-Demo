@@ -1,0 +1,100 @@
+/* The organization seat. Same paper, same accent, bigger question. */
+
+.orgwrap{max-width:1000px; margin:0 auto; padding:26px 44px 80px}
+.org-head{display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap}
+.org-title{font-family:var(--serif); font-size:26px; font-weight:500; line-height:1.25; margin-top:5px}
+.org-lens{display:flex; gap:3px; background:var(--dim); border-radius:4px; padding:3px; flex:none}
+.org-lens button{font-family:var(--sans); font-size:11.5px; color:var(--graphite); background:none; border:none;
+  cursor:pointer; padding:6px 15px; border-radius:3px; transition:.15s}
+.org-lens button.on{background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(26,25,21,.08)}
+.org-illus{font-size:11.5px; color:var(--faint); line-height:1.5; margin-top:12px; padding-bottom:16px; border-bottom:1px solid var(--hair)}
+
+/* the money row */
+.org-stats{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--hair);
+  border:1px solid var(--hair); margin-top:22px}
+.org-stat{background:var(--surface); padding:18px 18px 16px}
+.org-statk{font-family:var(--serif); font-size:30px; line-height:1; color:var(--ink)}
+.org-statv{font-size:11.5px; color:var(--graphite); line-height:1.5; margin-top:8px}
+
+.org-card{padding:20px 24px 18px; margin-top:16px}
+.org-cardhead{display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap; margin-bottom:14px}
+.org-note{font-size:11px; color:var(--faint)}
+.org-read{font-size:12px; color:var(--graphite); line-height:1.6; margin-top:14px; padding-top:12px; border-top:1px solid var(--hair)}
+
+/* coverage matrix */
+.org-matrix{display:flex; flex-direction:column; gap:2px}
+.org-mrow{display:grid; grid-template-columns:190px repeat(8,1fr); gap:3px; align-items:center}
+.org-mhead .org-mattr{font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); text-align:center}
+.org-munit{font-size:12.5px; color:var(--ink); display:flex; justify-content:space-between; padding-right:14px}
+.org-munit i{font-style:normal; font-size:11px; color:var(--faint)}
+.org-cell{height:22px; border-radius:2px; background:var(--dim)}
+.org-cell.b1{background:#EFDCD4}
+.org-cell.b2{background:#E2C4B9}
+.org-cell.b3{background:#D89076}
+.org-cell.b4{background:var(--signal)}
+
+/* work at risk */
+.org-risk{padding:13px 0; border-top:1px solid var(--hair)}
+.org-risk:first-of-type{border-top:none; padding-top:0}
+.org-riskhead{display:flex; justify-content:space-between; align-items:baseline; gap:12px}
+.org-riskwork{font-size:14px; font-weight:500; color:var(--ink)}
+.org-when{font-size:11px; color:var(--faint); white-space:nowrap}
+.org-needs{display:flex; align-items:center; gap:6px; margin-top:7px; flex-wrap:wrap}
+.org-need{font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--graphite);
+  border:1px solid var(--hair); border-radius:99px; padding:2px 9px}
+.org-need.missing{border-color:var(--signal); color:var(--signal)}
+.org-verdict{font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin-left:4px}
+.org-risk.gap .org-verdict{color:var(--signal)}
+.org-risknote{font-size:12.5px; color:var(--graphite); line-height:1.6; margin-top:8px}
+
+/* staffing */
+.org-query{font-family:var(--serif); font-size:19px; line-height:1.4; color:var(--ink);
+  border-left:2px solid var(--signal); padding-left:14px; margin-bottom:16px}
+.org-cand{display:flex; gap:14px; padding:13px 0; border-top:1px solid var(--hair)}
+.org-cand:first-of-type{border-top:none}
+.org-candrank{font-family:var(--serif); font-size:20px; color:var(--faint); width:18px; flex:none; line-height:1.2}
+.org-candbody{flex:1; min-width:0}
+.org-candname{font-size:14px; font-weight:500; color:var(--ink); display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+.org-candunit{font-size:11px; color:var(--faint); font-weight:400}
+.org-live{font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--signal);
+  border:1px solid var(--signal); border-radius:99px; padding:1px 7px; font-weight:400}
+.org-candbands{font-size:11px; letter-spacing:.05em; color:var(--graphite); margin-top:4px}
+.org-candquote{font-size:13px; font-style:italic; color:var(--ink); line-height:1.55; margin-top:8px;
+  padding-left:12px; border-left:1px solid var(--hair)}
+.org-candwhen{font-size:11px; color:var(--faint); margin-top:5px}
+
+/* movement and ledger */
+.org-two{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+.org-two .org-card{margin-top:16px}
+.org-growrow{display:grid; grid-template-columns:1fr auto; gap:10px 12px; align-items:center; padding:9px 0; border-top:1px solid var(--hair)}
+.org-growrow:first-of-type{border-top:none}
+.org-growname{font-size:12.5px; color:var(--ink); display:flex; align-items:center; gap:8px}
+.org-growname i{font-style:normal; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--signal)}
+.org-grownote{grid-column:1 / -1; font-size:10.5px; color:var(--faint); margin-top:-4px}
+.org-spark{display:block}
+
+.org-claim{display:grid; grid-template-columns:1fr auto; gap:2px 10px; padding:9px 0; border-top:1px solid var(--hair)}
+.org-claim:first-of-type{border-top:none}
+.org-claimwho{font-size:13px; color:var(--ink)}
+.org-claimattr{font-size:11px; color:var(--graphite); text-align:right}
+.org-claimto{font-size:11.5px; color:var(--graphite)}
+.org-claimon{font-size:11px; color:var(--faint); text-align:right}
+.org-claim.faded{opacity:.45}
+
+/* the move */
+.org-moves{border-left:2px solid var(--signal)}
+.org-move{display:flex; gap:12px; padding:9px 0}
+.org-move span{font-family:var(--serif); font-size:17px; color:var(--signal); width:16px; flex:none}
+.org-move p{font-size:13px; color:var(--ink); line-height:1.6}
+.org-punch{font-family:var(--serif); font-size:20px; color:var(--ink); margin-top:16px; padding-top:14px; border-top:1px solid var(--hair)}
+
+@media (max-width:1100px){
+  .org-stats{grid-template-columns:repeat(2,1fr)}
+  .org-two{grid-template-columns:1fr}
+  .org-mrow{grid-template-columns:130px repeat(8,1fr)}
+}
+@media (max-width:980px){
+  .orgwrap{padding:20px}
+  .org-mrow{grid-template-columns:100px repeat(8,1fr); gap:2px}
+  .org-munit{font-size:11px}
+}

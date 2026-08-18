@@ -7,6 +7,7 @@
 <meta name="description" content="A work surface that reads capability from ordinary work. A student writes, and their own record fills in beside them as they go.">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="issue.css">
+<link rel="stylesheet" href="org.css">
 </head>
 <body>
 
@@ -15,6 +16,7 @@
   <nav class="tabs" id="tabs">
     <button data-view="student" class="on">Student</button>
     <button data-view="teacher">Teacher</button>
+    <button data-view="org">Organization</button>
   </nav>
   <div class="chrome-right">
     <span class="integration off" id="intLang">language <b>·</b></span>
@@ -61,6 +63,8 @@
       </div>
     </div>
   </section>
+
+  <section id="orgView" class="view hide"></section>
 
   <aside class="issue" id="issue" hidden></aside>
 
