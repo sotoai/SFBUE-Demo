@@ -11,11 +11,15 @@ import { deriveInsights } from './js/insights.js'
 import { radarSVG, timelineSVG, compositionHTML, RADAR_CAPTION } from './js/charts.js'
 import { buildGraph, graphSVG, nodeDetail } from './js/graph.js'
 import * as API from './js/api.js'
+import { mountIssue } from './js/issue.js'
 
 const $ = id => document.getElementById(id)
 const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 const asEl = n => (n && n.nodeType === 1 ? n : n && n.parentElement) || null
+/* Renders announce themselves so a presentation layer can attach without
+   the product knowing it exists. */
+const emit = what => document.dispatchEvent(new CustomEvent('evolv:render', { detail: { what } }))
 
 /* ---------- session ---------- */
 const S = {
@@ -69,6 +73,7 @@ function switchView(view) {
   if (location.hash !== '#' + view) history.replaceState(null, '', '#' + view)
   hidePill(); hideAskForm()
   if (view === 'teacher') renderTeacher()
+  emit('view')
 }
 $('tabs').addEventListener('click', e => {
   const b = asEl(e.target)?.closest('button')
@@ -270,6 +275,7 @@ function renderSidebar() {
   if (S.record.observations.length || S.record.captured.length) {
     body.appendChild(el('div', 'side-foot', 'Every line points at a passage. Dispute any line and the dispute is kept.'))
   }
+  emit('sidebar')
 }
 
 /* The teacher reads the same record, uncompressed: the dark rows are part of
@@ -338,6 +344,7 @@ function renderTeacher() {
   g.innerHTML = `<span class="ovl">What this record can and cannot say</span>
     <ul>${GUARDRAILS.map(x => `<li>${x}</li>`).join('')}</ul>`
   t.appendChild(g)
+  emit('teacher')
 }
 
 function renderRecord() {
@@ -508,6 +515,7 @@ function readSource(id) {
   body.scrollTop = 0
   $('drawerBack').addEventListener('click', () => openDrawer())
   noteSourceOpened(pack)
+  emit('drawer')
 }
 
 /* Opening a source is intake. It is captured, never credited, and it arms the
@@ -639,6 +647,7 @@ function openDrawer(focusPack) {
   $('drawer').classList.add('on')
   $('drawerVeil').classList.add('on')
   if (focusPack) $('drawerBody').querySelector('.packrow')?.scrollIntoView({ block: 'start' })
+  emit('drawer')
 }
 function closeDrawer() {
   $('drawer').classList.remove('on')
@@ -660,6 +669,7 @@ function renderBegin() {
   renderAssignment(wrap.querySelector('.assignment'), { withActions: true })
   renderDiscussion(wrap.querySelector('.assignment'))
   $('sideSub').textContent = 'Nothing is recorded while you read. The record starts with the work.'
+  emit('begin')
 }
 
 function beginWork(mode) {
@@ -740,6 +750,7 @@ function renderCanvas() {
     doc.appendChild(block)
   }
   c.appendChild(doc)
+  emit('canvas')
 }
 
 /* Typing alone stays dark. Typing after opening the evidence that contradicts
@@ -842,7 +853,9 @@ function hideAskForm() { $('askform').classList.remove('on') }
 function openAskForm(info, at) {
   const f = $('askform')
   f.classList.add('on')
-  f.style.left = Math.min(Math.max(12, at.left), innerWidth - 340) + 'px'
+  const rightEdge = document.body.classList.contains('reading')
+    ? innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--issue')) || 0) : innerWidth
+  f.style.left = Math.min(Math.max(12, at.left), rightEdge - 340) + 'px'
   f.style.top = Math.max(8, at.top) + 'px'
   const input = $('askInput')
   input.value = ''
@@ -1394,3 +1407,8 @@ renderSidebar()
 switchView(location.hash === '#teacher' ? 'teacher' : 'student')
 integrations()
 API.loadStatus().then(integrations).catch(() => {})
+mountIssue({
+  state: () => S,
+  switchView, openDrawer, openProfile, beginWork, openModal, readSource,
+  focusBlock: id => document.querySelector(`p.body[data-block="${id}"]`)?.scrollIntoView({ block: 'center' }),
+})
