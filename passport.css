@@ -1,0 +1,69 @@
+/* The capability passport. One person, compounding. */
+
+.ppwrap{max-width:1000px; margin:0 auto; padding:26px 44px 90px}
+.pp-head-row{display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+.pp-title{font-family:var(--serif); font-size:26px; font-weight:500; line-height:1.2; margin-top:2px}
+.pp-line{flex:1; min-width:260px; font-size:12px; color:var(--graphite); line-height:1.55; text-align:right}
+.pp-card{padding:20px 24px 18px; margin-top:16px}
+
+/* where she was */
+.pp-places{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin:0 0 12px 132px}
+.pp-place{background:var(--dim); border-radius:2px; padding:7px 10px; min-width:0}
+.pp-kind{display:block; font-size:9px; letter-spacing:.11em; text-transform:uppercase; color:var(--faint)}
+.pp-org{display:block; font-size:11.5px; color:var(--ink); line-height:1.35; margin-top:2px}
+
+/* depth over time */
+.pp-grid{display:flex; flex-direction:column; gap:3px}
+.pp-row{display:grid; grid-template-columns:126px repeat(7,1fr); gap:4px; align-items:center}
+.pp-year{font-size:9px; letter-spacing:.1em; color:var(--faint); text-align:center}
+.pp-attr{font-size:12px; color:var(--ink)}
+.pp-cell{height:20px; border-radius:2px; background:var(--dim)}
+.pp-cell.b1{background:#EFDCD4}
+.pp-cell.b2{background:#E2C4B9}
+.pp-cell.b3{background:#D89076}
+.pp-cell.b4{background:var(--signal)}
+
+.pp-two{display:grid; grid-template-columns:1.1fr 1fr; gap:16px; align-items:stretch}
+.pp-two > .pp-card{display:flex; flex-direction:column}
+
+.pp-work{display:flex; gap:12px; padding:10px 0; border-top:1px solid var(--hair)}
+.pp-work:first-of-type{border-top:none}
+.pp-wyear{font-size:11px; color:var(--faint); width:34px; flex:none; padding-top:2px}
+.pp-wtitle{font-size:13.5px; color:var(--ink); line-height:1.4; display:flex; gap:8px; align-items:baseline; flex-wrap:wrap}
+.pp-wtitle i{font-style:normal; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--signal);
+  border:1px solid var(--signal); border-radius:99px; padding:1px 7px}
+.pp-wshowed{font-size:11.5px; color:var(--faint); margin-top:3px}
+.pp-work.live .pp-wtitle{font-weight:500}
+
+.pp-claim{padding:10px 0; border-top:1px solid var(--hair)}
+.pp-claim:first-of-type{border-top:none}
+.pp-cattr{font-size:13.5px; color:var(--ink); display:flex; justify-content:space-between; gap:10px; align-items:baseline}
+.pp-cattr span{font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--graphite)}
+.pp-cby{font-size:12px; color:var(--graphite); line-height:1.5; margin-top:3px}
+.pp-con{font-size:11px; color:var(--faint); margin-top:2px}
+
+/* ownership */
+.pp-owncols{display:grid; grid-template-columns:1fr 1fr; gap:24px}
+.pp-owncols .ovl{margin-bottom:8px}
+.pp-o{font-size:12.5px; color:var(--ink); line-height:1.5; padding:6px 0 6px 13px; border-left:2px solid var(--signal)}
+.pp-o.stay{border-left-color:var(--hair); color:var(--graphite)}
+
+/* the case */
+.pp-case{margin-top:26px; padding-top:22px; border-top:1px solid var(--hair)}
+.pp-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--hair); border:1px solid var(--hair)}
+.pp-stat{background:var(--surface); padding:20px}
+.pp-statk{font-family:var(--serif); font-size:36px; line-height:1; color:var(--ink)}
+.pp-statv{font-size:12px; color:var(--graphite); line-height:1.5; margin-top:9px}
+.pp-fly{border-left:2px solid var(--signal)}
+.pp-flyrow{display:flex; gap:12px; padding:8px 0}
+.pp-flyrow span{font-family:var(--serif); font-size:16px; color:var(--signal); width:14px; flex:none}
+.pp-flyrow p{font-size:13px; color:var(--ink); line-height:1.6}
+.pp-punch{font-family:var(--serif); font-size:20px; line-height:1.4; color:var(--ink); margin-top:16px; padding-top:16px; border-top:1px solid var(--hair)}
+
+@media (max-width:1100px){
+  .pp-two, .pp-owncols{grid-template-columns:1fr}
+  .pp-places{margin-left:0}
+  .pp-row{grid-template-columns:96px repeat(7,1fr)}
+  .pp-line{text-align:left}
+}
+@media (max-width:980px){ .ppwrap{padding:20px} .pp-stats{grid-template-columns:1fr} }

@@ -12,6 +12,7 @@ import { radarSVG, timelineSVG, compositionHTML, RADAR_CAPTION } from './js/char
 import { buildGraph, graphSVG, nodeDetail } from './js/graph.js'
 import * as API from './js/api.js'
 import { renderOrg } from './js/org.js'
+import { renderPassport } from './js/passport.js'
 
 const $ = id => document.getElementById(id)
 const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n }
@@ -74,6 +75,7 @@ const WHO = {
   student: { name: WORLDS.university.learner.name, role: 'Student · Applied Launch Studio' },
   teacher: { name: WORLDS.university.evaluator.name, role: 'Faculty · Applied Launch Studio' },
   org: { name: WORLDS.enterprise.evaluator.name, role: 'VP Brand and Sites · Kado' },
+  passport: { name: WORLDS.university.learner.name, role: 'Her record, six years on' },
 }
 function setWhoami(view) {
   const w = WHO[view] || WHO.student
@@ -86,18 +88,20 @@ function switchView(view) {
   $('studentView').classList.toggle('hide', view !== 'student')
   $('teacherView').classList.toggle('hide', view !== 'teacher')
   $('orgView').classList.toggle('hide', view !== 'org')
+  $('passportView').classList.toggle('hide', view !== 'passport')
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.view === view))
   if (location.hash !== '#' + view) history.replaceState(null, '', '#' + view)
   hidePill(); hideAskForm()
   if (view === 'teacher') renderTeacher()
   if (view === 'org') renderOrg()
+  if (view === 'passport') renderPassport()
 }
 $('tabs').addEventListener('click', e => {
   const b = asEl(e.target)?.closest('button')
   if (b) switchView(b.dataset.view)
 })
 addEventListener('hashchange', () => {
-  const v = location.hash === '#teacher' ? 'teacher' : location.hash === '#org' ? 'org' : 'student'
+  const v = location.hash === '#teacher' ? 'teacher' : location.hash === '#org' ? 'org' : location.hash === '#passport' ? 'passport' : 'student'
   if (v !== S.view) switchView(v)
 })
 
@@ -1447,6 +1451,6 @@ $('btnTrace').addEventListener('click', () => {
 /* ---------- boot ---------- */
 renderBegin()
 renderSidebar()
-switchView(location.hash === '#teacher' ? 'teacher' : location.hash === '#org' ? 'org' : 'student')
+switchView(location.hash === '#teacher' ? 'teacher' : location.hash === '#org' ? 'org' : location.hash === '#passport' ? 'passport' : 'student')
 integrations()
 API.loadStatus().then(integrations).catch(() => {})
