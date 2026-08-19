@@ -14,6 +14,12 @@ const $ = id => document.getElementById(id)
 const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
+function avatarHTML(name, size = 26) {
+  const initials = String(name).split(' ').filter(w => /^[A-Za-z]/.test(w)).slice(-2).map(w => w[0]).join('').toUpperCase()
+  const tint = ['#EFDCD4', '#E2C4B9', '#DCD3C4', '#D6DBD2', '#E4DCE6'][[...String(name)].reduce((a, c) => a + c.charCodeAt(0), 0) % 5]
+  return `<span class="avatar" style="width:${size}px;height:${size}px;background:${tint};font-size:${Math.round(size * 0.36)}px">${initials}</span>`
+}
+
 const ATTRS = ['Perception', 'Systems', 'Reasoning', 'Execution', 'Growth', 'Decision', 'Creation', 'Perspective']
 
 const LENS = {
@@ -25,7 +31,6 @@ const LENS = {
     stats: [
       { k: '38', v: 'people read this quarter, from work they were doing anyway' },
       { k: '1,240', v: 'observations, each quoting the passage it came from' },
-      { k: '61', v: 'claims published by the person and accepted by a third party' },
       { k: '9 days', v: 'median time to a person\'s first evidenced capability' },
     ],
     units: [
@@ -37,14 +42,11 @@ const LENS = {
     ],
     risks: [
       { work: 'Corner two site decision', when: 'signs in 6 weeks', needs: ['Decision', 'Perspective'], gap: 'Perspective', note: 'Whoever takes it has to tell Elena the interchange is the wrong first corner. Nobody on Sites and Launch has evidenced writing toward a named person\'s objection.' },
-      { work: 'Lease renegotiation, Alder Street', when: '11 weeks', needs: ['Reasoning', 'Decision'], gap: null, note: 'Covered. Four people carry evidence in both, two of them across more than one piece of work.' },
-      { work: 'Series A narrative', when: '4 months', needs: ['Creation', 'Perspective', 'Growth'], gap: 'Growth', note: 'Growth is dark on three of five teams. Nothing shipped this year required anyone to move or defend a position in public.' },
     ],
     query: 'Who can tell a founder they are wrong, and put the cost in writing?',
     candidates: [
       { name: 'Theo Marchetti', unit: 'Sites and Launch', bands: 'Perspective · Supported. Decision · Supported.', quote: 'Elena will read this as walking away from the road. It is not. It is choosing the corner we can win first.', when: 'Corner two memo, two months ago' },
       { name: 'Dani Okafor', unit: 'Operations', bands: 'Decision · Supported. Perspective · Noticed.', quote: 'Hold the second shift until the Fruitvale lease clears. We eat a month of momentum and open with parking we control.', when: 'Staffing plan, five weeks ago' },
-      { name: 'Amara Osei', unit: 'Studio placement', bands: 'Growth · Noticed. Perspective · Noticed.', quote: 'The rewrite sells a shorter wait. We are not selling a wait at all. That is the position.', when: 'Launch concept, this week', live: true },
     ],
     growth: [
       { name: 'Theo Marchetti', series: [1, 1, 2, 2, 3, 3, 4], note: 'Perspective, seven months' },
@@ -71,7 +73,6 @@ const LENS = {
     stats: [
       { k: '412', v: 'learners read this term, from work they were doing anyway' },
       { k: '8,900', v: 'observations, each quoting the passage it came from' },
-      { k: '214', v: 'claims published by the learner and accepted by an employer' },
       { k: '2 days', v: 'median time to a learner\'s first evidenced capability' },
     ],
     units: [
@@ -83,14 +84,11 @@ const LENS = {
     ],
     risks: [
       { work: 'Employer partner review', when: '3 weeks', needs: ['Growth', 'Perspective'], gap: 'Growth', note: 'Partners ask for people who change their mind on evidence. Growth is the thinnest column in the school, because most work here is never wrong in a way that has to be repaired.' },
-      { work: 'Capstone placements', when: '7 weeks', needs: ['Decision', 'Reasoning'], gap: null, note: 'Covered across four studios. 118 learners carry both at Supported or better.' },
-      { work: 'Accreditation evidence pack', when: 'next term', needs: ['Systems', 'Execution'], gap: null, note: 'Every claim traces to a passage and a source. The pack writes itself from the record.' },
     ],
     query: 'Which learners can hold a position under pressure, with the reason on the page?',
     candidates: [
       { name: 'Amara Osei', unit: 'Applied Launch', bands: 'Growth · Noticed. Perspective · Noticed.', quote: 'The rewrite sells a shorter wait. We are not selling a wait at all. That is the position.', when: 'Launch concept, this week', live: true },
       { name: 'Jun Watanabe', unit: 'Venture Studio', bands: 'Growth · Supported. Decision · Supported.', quote: 'I was wrong about the pricing floor. The retention data does not support it and I am moving.', when: 'Pricing memo, last term' },
-      { name: 'Fatima Haddad', unit: 'Data and Decisions', bands: 'Growth · Emerging. Reasoning · Well evidenced.', quote: 'Keeping the original model. The new one fits better and explains less, and we have to explain it.', when: 'Forecast review, six weeks ago' },
     ],
     growth: [
       { name: 'Jun Watanabe', series: [0, 1, 1, 2, 3, 3, 4], note: 'Growth, two terms' },
@@ -156,7 +154,7 @@ function staffing(L) {
       <span class="org-note">answered from evidence, not from a profile someone wrote about themselves</span></div>
     <div class="org-query">${esc(L.query)}</div>
     ${L.candidates.map((c, i) => `<div class="org-cand">
-      <div class="org-candrank">${i + 1}</div>
+      <div class="org-candrank">${avatarHTML(c.name, 34)}</div>
       <div class="org-candbody">
         <div class="org-candname">${esc(c.name)}<span class="org-candunit">${esc(c.unit)}</span>${c.live ? '<span class="org-live">live in this session</span>' : ''}</div>
         <div class="org-candbands">${esc(c.bands)}</div>
@@ -165,49 +163,6 @@ function staffing(L) {
       </div>
     </div>`).join('')}
     <div class="org-read">Every line above quotes work the person actually did. Nothing here is self-reported, and nothing here came from an assessment anyone sat.</div>
-  </div>`
-}
-
-function spark(series) {
-  const w = 132, h = 30, max = 4
-  const pts = series.map((v, i) => `${(i / (series.length - 1) * (w - 4) + 2).toFixed(1)},${(h - 3 - (v / max) * (h - 8)).toFixed(1)}`).join(' ')
-  const last = series[series.length - 1]
-  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" class="org-spark">
-    <polyline points="${pts}" fill="none" stroke="var(--signal)" stroke-width="1.5" stroke-linejoin="round"/>
-    <circle cx="${w - 2}" cy="${(h - 3 - (last / max) * (h - 8)).toFixed(1)}" r="2.6" fill="var(--signal)"/>
-  </svg>`
-}
-
-function growth(L) {
-  return `<div class="card org-card">
-    <div class="org-cardhead"><span class="ovl">Movement</span>
-      <span class="org-note">the same reading, run repeatedly, with nobody stopping to be assessed</span></div>
-    ${L.growth.map(g => `<div class="org-growrow">
-      <span class="org-growname">${esc(g.name)}${g.live ? '<i>live</i>' : ''}</span>
-      ${spark(g.series)}
-      <span class="org-grownote">${esc(g.note)}</span>
-    </div>`).join('')}
-  </div>`
-}
-
-function ledger(L) {
-  return `<div class="card org-card">
-    <div class="org-cardhead"><span class="ovl">Claims that left the building</span>
-      <span class="org-note">published by the person, accepted by a third party, and they fade</span></div>
-    ${L.ledger.map(c => `<div class="org-claim${c.faded ? ' faded' : ''}">
-      <span class="org-claimwho">${esc(c.who)}</span>
-      <span class="org-claimattr">${esc(c.attr)} · ${esc(c.band)}</span>
-      <span class="org-claimto">${esc(c.to)}</span>
-      <span class="org-claimon">${esc(c.on)}</span>
-    </div>`).join('')}
-  </div>`
-}
-
-function moves(L) {
-  return `<div class="card org-card org-moves">
-    <div class="org-cardhead"><span class="ovl">The move this suggests</span></div>
-    ${L.moves.map((m, i) => `<div class="org-move"><span>${i + 1}</span><p>${esc(m)}</p></div>`).join('')}
-    <div class="org-punch">The work has to change, not the ${esc(L.personWord)}.</div>
   </div>`
 }
 
@@ -231,10 +186,8 @@ export function renderOrg() {
     <div class="org-illus">Seeded for this conversation. The student surface is live; this one shows the same reading at the scale a ${lens === 'enterprise' ? 'workforce' : 'school'} would run it.</div>
     ${statBand(L)}
     ${matrix(L)}
-    ${risks(L)}
-    ${staffing(L)}
-    <div class="org-two">${growth(L)}${ledger(L)}</div>
-    ${moves(L)}
+    <div class="org-two">${risks(L)}${staffing(L)}</div>
+    <div class="org-punch">The work has to change, not the ${esc(L.personWord)}.</div>
   </div>`
 
   host.querySelector('.org-lens').addEventListener('click', e => {

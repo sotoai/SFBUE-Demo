@@ -11,16 +11,20 @@ import { deriveInsights } from './js/insights.js'
 import { radarSVG, timelineSVG, compositionHTML, RADAR_CAPTION } from './js/charts.js'
 import { buildGraph, graphSVG, nodeDetail } from './js/graph.js'
 import * as API from './js/api.js'
-import { mountIssue } from './js/issue.js'
 import { renderOrg } from './js/org.js'
 
 const $ = id => document.getElementById(id)
 const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 const asEl = n => (n && n.nodeType === 1 ? n : n && n.parentElement) || null
-/* Renders announce themselves so a presentation layer can attach without
-   the product knowing it exists. */
-const emit = what => document.dispatchEvent(new CustomEvent('evolv:render', { detail: { what } }))
+
+/* A quiet avatar: initials on paper, drawn rather than fetched, so it works
+   with the network down and never leaves the palette. */
+export function avatarHTML(name, size = 26) {
+  const initials = String(name).split(' ').filter(w => /^[A-Za-z]/.test(w)).slice(-2).map(w => w[0]).join('').toUpperCase()
+  const tint = ['#EFDCD4', '#E2C4B9', '#DCD3C4', '#D6DBD2', '#E4DCE6'][[...String(name)].reduce((a, c) => a + c.charCodeAt(0), 0) % 5]
+  return `<span class="avatar" style="width:${size}px;height:${size}px;background:${tint};font-size:${Math.round(size * 0.36)}px">${initials}</span>`
+}
 
 /* ---------- session ---------- */
 const S = {
@@ -66,8 +70,19 @@ function integrations() {
 }
 
 /* ---------- views ---------- */
+const WHO = {
+  student: { name: WORLDS.university.learner.name, role: 'Student · Applied Launch Studio' },
+  teacher: { name: WORLDS.university.evaluator.name, role: 'Faculty · Applied Launch Studio' },
+  org: { name: WORLDS.enterprise.evaluator.name, role: 'VP Brand and Sites · Kado' },
+}
+function setWhoami(view) {
+  const w = WHO[view] || WHO.student
+  $('whoami').innerHTML = `${avatarHTML(w.name, 26)}<span class="who-t"><b>${esc(w.name)}</b><i>${esc(w.role)}</i></span>`
+}
+
 function switchView(view) {
   S.view = view
+  setWhoami(view)
   $('studentView').classList.toggle('hide', view !== 'student')
   $('teacherView').classList.toggle('hide', view !== 'teacher')
   $('orgView').classList.toggle('hide', view !== 'org')
@@ -76,7 +91,6 @@ function switchView(view) {
   hidePill(); hideAskForm()
   if (view === 'teacher') renderTeacher()
   if (view === 'org') renderOrg()
-  emit('view')
 }
 $('tabs').addEventListener('click', e => {
   const b = asEl(e.target)?.closest('button')
@@ -278,7 +292,6 @@ function renderSidebar() {
   if (S.record.observations.length || S.record.captured.length) {
     body.appendChild(el('div', 'side-foot', 'Every line points at a passage. Dispute any line and the dispute is kept.'))
   }
-  emit('sidebar')
 }
 
 /* The teacher reads the same record, uncompressed: the dark rows are part of
@@ -347,7 +360,6 @@ function renderTeacher() {
   g.innerHTML = `<span class="ovl">What this record can and cannot say</span>
     <ul>${GUARDRAILS.map(x => `<li>${x}</li>`).join('')}</ul>`
   t.appendChild(g)
-  emit('teacher')
 }
 
 function renderRecord() {
@@ -518,7 +530,6 @@ function readSource(id) {
   body.scrollTop = 0
   $('drawerBack').addEventListener('click', () => openDrawer())
   noteSourceOpened(pack)
-  emit('drawer')
 }
 
 /* Opening a source is intake. It is captured, never credited, and it arms the
@@ -650,7 +661,6 @@ function openDrawer(focusPack) {
   $('drawer').classList.add('on')
   $('drawerVeil').classList.add('on')
   if (focusPack) $('drawerBody').querySelector('.packrow')?.scrollIntoView({ block: 'start' })
-  emit('drawer')
 }
 function closeDrawer() {
   $('drawer').classList.remove('on')
@@ -672,7 +682,6 @@ function renderBegin() {
   renderAssignment(wrap.querySelector('.assignment'), { withActions: true })
   renderDiscussion(wrap.querySelector('.assignment'))
   $('sideSub').textContent = 'Nothing is recorded while you read. The record starts with the work.'
-  emit('begin')
 }
 
 function beginWork(mode) {
@@ -753,7 +762,6 @@ function renderCanvas() {
     doc.appendChild(block)
   }
   c.appendChild(doc)
-  emit('canvas')
 }
 
 /* Typing alone stays dark. Typing after opening the evidence that contradicts
@@ -856,9 +864,7 @@ function hideAskForm() { $('askform').classList.remove('on') }
 function openAskForm(info, at) {
   const f = $('askform')
   f.classList.add('on')
-  const rightEdge = document.body.classList.contains('reading')
-    ? innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--issue')) || 0) : innerWidth
-  f.style.left = Math.min(Math.max(12, at.left), rightEdge - 340) + 'px'
+  f.style.left = Math.min(Math.max(12, at.left), innerWidth - 340) + 'px'
   f.style.top = Math.max(8, at.top) + 'px'
   const input = $('askInput')
   input.value = ''
@@ -1410,8 +1416,3 @@ renderSidebar()
 switchView(location.hash === '#teacher' ? 'teacher' : location.hash === '#org' ? 'org' : 'student')
 integrations()
 API.loadStatus().then(integrations).catch(() => {})
-mountIssue({
-  state: () => S,
-  switchView, openDrawer, openProfile, beginWork, openModal, readSource,
-  focusBlock: id => document.querySelector(`p.body[data-block="${id}"]`)?.scrollIntoView({ block: 'center' }),
-})
