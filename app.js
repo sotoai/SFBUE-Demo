@@ -550,8 +550,28 @@ function noteSourceOpened(pack) {
    rides the bounded semantic channel toward the knowledge graph, and the
    thread itself is captured intake. */
 
+const GUIDE = {
+  name: 'Mateo',
+  role: 'Studio guide',
+  img: 'images/wren.jpg',
+  line: 'An assistant, not a person. It discusses the work and never writes your document.',
+}
+function guideFace(size = 34, cls = '') {
+  return `<span class="face ${cls}" style="width:${size}px;height:${size}px">
+    <img src="${GUIDE.img}" alt="" onerror="this.classList.add('gone')">
+    <span class="face-fb">M</span></span>`
+}
+
 const DISCUSSION = { turns: [], captured: false }
 let recorder = null
+
+function setGuide(state) {
+  document.querySelectorAll('.guide').forEach(g => {
+    g.dataset.state = state || ''
+    const s = g.querySelector('.guide-state')
+    if (s) s.textContent = state || ''
+  })
+}
 
 function discussTranscript() {
   return DISCUSSION.turns.map(t => (t.who === 'you' ? 'THEM: ' : 'GUIDE: ') + t.text).join('\n').slice(-3000)
@@ -560,6 +580,14 @@ function discussTranscript() {
 function renderDiscussion(host) {
   const wrap = el('div', 'discuss')
   wrap.innerHTML = `<span class="ovl">Discuss the assignment</span>
+    <div class="guide">
+      ${guideFace(38)}
+      <div class="guide-t">
+        <b>${GUIDE.name}</b><i>${GUIDE.role} · ${API.state.voice ? 'voice and text' : 'text, voice needs a key'}</i>
+        <span class="guide-line">${GUIDE.line}</span>
+      </div>
+      <span class="guide-state" id="guideState"></span>
+    </div>
     <div class="dsub">Type or talk it through. Asking a real question sharpens the record the same way writing does.</div>
     <div class="dturns"></div>
     <div class="drow2">
@@ -575,8 +603,9 @@ function renderDiscussion(host) {
   const mic = wrap.querySelector('.micbtn')
 
   const paintTurns = () => {
-    turnsEl.innerHTML = DISCUSSION.turns.map(t =>
-      `<div class="turn ${t.who === 'you' ? 'you' : 'res'}">${esc(t.text)}</div>`).join('')
+    turnsEl.innerHTML = DISCUSSION.turns.map(t => t.who === 'you'
+      ? `<div class="turn you">${esc(t.text)}</div>`
+      : `<div class="turn res">${guideFace(24, 'sm')}<span>${esc(t.text)}</span></div>`).join('')
     turnsEl.scrollTop = turnsEl.scrollHeight
   }
   paintTurns()
@@ -587,6 +616,7 @@ function renderDiscussion(host) {
     DISCUSSION.turns.push({ who: 'you', text })
     paintTurns()
     stateEl.textContent = 'thinking'
+    setGuide('thinking')
     if (!DISCUSSION.captured) {
       DISCUSSION.captured = true
       capture(S.record, 'Discussed the assignment before writing')
@@ -598,6 +628,7 @@ function renderDiscussion(host) {
     DISCUSSION.turns.push({ who: 'res', text: reply })
     paintTurns()
     stateEl.textContent = ''
+    setGuide('')
     S.busy = false
     // The utterance is studied like any other act, through the same bounded
     // channel, toward the same graph. Most utterances read as nothing.
@@ -605,12 +636,13 @@ function renderDiscussion(host) {
       'The Kado launch concept assignment', null)
     if (spoken) {
       stateEl.textContent = 'speaking'
+      setGuide('speaking')
       const v = await API.speak(reply)
       if (v.ok) {
         const player = new Audio(v.url)
-        player.onended = () => { stateEl.textContent = ''; URL.revokeObjectURL(v.url) }
-        player.play().catch(() => { stateEl.textContent = '' })
-      } else stateEl.textContent = ''
+        player.onended = () => { stateEl.textContent = ''; setGuide(''); URL.revokeObjectURL(v.url) }
+        player.play().catch(() => { stateEl.textContent = ''; setGuide('') })
+      } else { stateEl.textContent = ''; setGuide('') }
     }
   }
 
@@ -638,6 +670,7 @@ function renderDiscussion(host) {
         recorder = null
         mic.textContent = 'voice'
         mic.classList.remove('rec')
+        setGuide('thinking')
         stateEl.textContent = 'hearing'
         const heard = await API.transcribe(new Blob(chunks, { type: 'audio/webm' }))
         if (!heard.ok) { stateEl.textContent = 'could not hear that, try again or type'; return }
@@ -648,6 +681,7 @@ function renderDiscussion(host) {
       mic.textContent = 'stop'
       mic.classList.add('rec')
       stateEl.textContent = 'listening'
+      setGuide('listening')
     } catch {
       stateEl.textContent = 'microphone unavailable in this browser'
     }
