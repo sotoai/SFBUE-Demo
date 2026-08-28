@@ -557,7 +557,7 @@ function noteSourceOpened(pack) {
 const GUIDE = {
   name: 'Mateo',
   role: 'Studio guide',
-  img: 'images/wren.jpg',
+  img: 'images/mateo.jpg',
   line: 'An assistant, not a person. It discusses the work and never writes your document.',
 }
 function guideFace(size = 34, cls = '') {
